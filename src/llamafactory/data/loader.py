@@ -18,7 +18,8 @@ from typing import TYPE_CHECKING, Dict, Literal, Optional, Sequence, Union
 
 import numpy as np
 from datasets import DatasetDict, load_dataset, load_from_disk
-
+import datasets
+datasets.builder.has_sufficient_disk_space = lambda needed_bytes, directory='.': True
 from ..extras import logging
 from ..extras.constants import FILEEXT2TYPE
 from ..extras.misc import check_version, has_tokenized_data
