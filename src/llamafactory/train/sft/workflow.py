@@ -79,27 +79,6 @@ def run_sft(
         metric_module["preprocess_logits_for_metrics"] = eval_logit_processor
 
 
-    logger.info("!!!!!!!!!!!!Load CustomSeq2Seq")
-    logger.info("!!!")
-    logger.info("!!!")
-    logger.info("!!!")
-    logger.info("!!!")
-    logger.info("!!!")
-    logger.info("!!!")
-    logger.info("!!!")
-    logger.info("!!!")
-    logger.info("!!!")
-    logger.info("!!!")
-    logger.info("!!!")
-    logger.info("!!!")
-
-    logger.info("!!!")
-    logger.info("!!!")
-    logger.info("!!!")
-    logger.info("!!!")
-    logger.info("!!!")
-    logger.info("!!!")
-    logger.info("!!!")
     
     # Initialize our Trainer
     trainer = CustomSeq2SeqTrainer(
@@ -112,6 +91,7 @@ def run_sft(
         **tokenizer_module,
         **metric_module,
     )
+    trainer.args.use_legacy_prediction_loop=True
 
     # Keyword arguments for `model.generate`
     gen_kwargs = generating_args.to_dict(obey_generation_config=True)
