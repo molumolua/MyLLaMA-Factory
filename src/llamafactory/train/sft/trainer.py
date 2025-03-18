@@ -33,7 +33,7 @@ from ..trainer_utils import create_custom_optimizer, create_custom_scheduler
 from datasets import load_dataset
 from ..math_eval import process_reject_sample
 from torch.utils.data import DataLoader, Dataset, IterableDataset, RandomSampler, SequentialSampler
-from transformers.utils import logging
+from ...extras.logging import get_logger
 from tqdm import tqdm
 from torch.utils.data import DataLoader, DistributedSampler
 import torch.distributed as dist
@@ -177,7 +177,7 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
         metric_key_prefix: str = "eval",
         **gen_kwargs,
     ) -> Dict[str, float]:
-        logger.info("Start Eval Math.")
+        logger.info_rank0("Start Eval Math.")
         
         eval_dataset = load_dataset("HuggingFaceH4/MATH-500", split="test")
         
@@ -185,7 +185,7 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
         # 获取模型并确保处于评估模式
         model = self._wrap_model(self.model, training=False, dataloader=None)
         model.eval()
-        logger.info("Load Math Data Successful.")
+        logger.info_rank0("Load Math Data Successful.")
         
         # 使用 DistributedSampler 来处理数据分配
         batch_size = 1
