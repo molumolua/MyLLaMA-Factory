@@ -35,7 +35,13 @@ from ..math_eval import process_reject_sample
 from torch.utils.data import DataLoader, Dataset, IterableDataset, RandomSampler, SequentialSampler
 from transformers.utils import logging
 from tqdm import tqdm
+from torch.utils.data import DataLoader, DistributedSampler
+import torch.distributed as dist
 
+def get_dataloader(dataset, batch_size):
+    sampler = DistributedSampler(dataset)  # 通过 DistributedSampler 将数据集分配到每张卡上
+    dataloader = DataLoader(dataset, sampler=sampler, batch_size=batch_size, num_workers=4)
+    return dataloader
 
 logger = logging.get_logger(__name__)
 
@@ -172,63 +178,62 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
         **gen_kwargs,
     ) -> Dict[str, float]:
         logger.info("Start Eval Math.")
+        
         eval_dataset = load_dataset("HuggingFaceH4/MATH-500", split="test")
+        
+        
         # 获取模型并确保处于评估模式
         model = self._wrap_model(self.model, training=False, dataloader=None)
         model.eval()
         logger.info("Load Math Data Successful.")
         
-        # 处理 dataset 和参数
-        input_texts = [
-            self.tokenizer.apply_chat_template(
-                [
-                    {"role": "system", "content": "Please reason step by step, and put your final answer within \\boxed{{}}"},
-                    {"role": "user", "content": problem['problem']}
-                ],
-                tokenize=False,
-                add_generation_prompt=True,
-            )
-            for problem in eval_dataset
-        ]
-        
-        # 对 input_texts 进行编码
-        encoded_inputs = self.tokenizer(input_texts, padding=True, truncation=True, return_tensors="pt")
-        encoded_inputs = {k: v.to(model.device) for k, v in encoded_inputs.items()}
-        
-        logger.info(f"First input text: {input_texts[0]}")
-        # logger.info(f"First encoded input: {encoded_inputs['input_ids'][0]}")
+        # 使用 DistributedSampler 来处理数据分配
+        batch_size = 1
+        dataloader = get_dataloader(eval_dataset, batch_size)
 
-        # 使用 autocast 在 bfloat16 下进行生成（相当于贪心解码）
-        batch_size = 32
         generated_responses = []
-        input_ids = encoded_inputs["input_ids"]
-        attention_mask = encoded_inputs["attention_mask"]
 
-        for i in tqdm(range(0, len(eval_dataset), batch_size), desc="Processing Batches", ncols=100, unit="batch"):
-            batch_input_ids = input_ids[i:i+batch_size]
-            batch_attention_mask = attention_mask[i:i+batch_size]
+        # 使用 tqdm 显示进度条
+        for i, batch in enumerate(tqdm(dataloader, desc="Processing Batches", ncols=100, unit="batch")):
+            # 分配数据到各个卡
+            input_ids = batch['input_ids'].to(model.device)
+            attention_mask = batch['attention_mask'].to(model.device)
+            
             with torch.cuda.amp.autocast(dtype=torch.bfloat16):
-                batch_generated = model.generate(
-                    input_ids=batch_input_ids,
-                    attention_mask=batch_attention_mask,
+                generated = model.generate(
+                    input_ids=input_ids,
+                    attention_mask=attention_mask,
                     max_new_tokens=32678,
                     temperature=1.0,
                     num_beams=1,
                     eos_token_id=self.tokenizer.eos_token_id
                 )
+            
+            # 解码生成的响应
             batch_decoded = [
                 self.tokenizer.decode(g, skip_special_tokens=True)
-                for g in batch_generated
+                for g in generated
             ]
             generated_responses.extend(batch_decoded)
-        
-        # 计算数学正确率
-        score = sum([
-            process_reject_sample(problem, 'solution', response, logger)
-            for problem, response in zip(eval_dataset, generated_responses)
-        ]) / len(eval_dataset) * 100
 
-        return {f"{metric_key_prefix}_math_score": score}
+        # 收集所有进程的生成结果
+        all_generated_responses = None
+        if dist.get_rank() == 0:
+            all_generated_responses = [generated_responses]
+        else:
+            all_generated_responses = dist.gather(generated_responses, dst=0)  # gather results to rank 0
+
+        # 主进程处理并汇总结果
+        if dist.get_rank() == 0:
+            all_generated_responses = sum(all_generated_responses, [])  # 合并所有生成的响应
+
+            # 计算数学正确率
+            score = sum([
+                process_reject_sample(problem, 'solution', response, logger)
+                for problem, response in zip(eval_dataset, all_generated_responses)
+            ]) / len(eval_dataset) * 100
+
+            return {f"{metric_key_prefix}_math_score": score}
 
     def save_predictions(
         self, dataset: "Dataset", predict_results: "PredictionOutput", skip_special_tokens: bool = True
