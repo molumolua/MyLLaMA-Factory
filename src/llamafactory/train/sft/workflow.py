@@ -80,6 +80,27 @@ def run_sft(
 
 
     logger.info("!!!!!!!!!!!!Load CustomSeq2Seq")
+    logger.info("!!!")
+    logger.info("!!!")
+    logger.info("!!!")
+    logger.info("!!!")
+    logger.info("!!!")
+    logger.info("!!!")
+    logger.info("!!!")
+    logger.info("!!!")
+    logger.info("!!!")
+    logger.info("!!!")
+    logger.info("!!!")
+    logger.info("!!!")
+
+    logger.info("!!!")
+    logger.info("!!!")
+    logger.info("!!!")
+    logger.info("!!!")
+    logger.info("!!!")
+    logger.info("!!!")
+    logger.info("!!!")
+    
     # Initialize our Trainer
     trainer = CustomSeq2SeqTrainer(
         model=model,
