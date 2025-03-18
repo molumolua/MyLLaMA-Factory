@@ -45,14 +45,6 @@ def get_dataloader(dataset, batch_size):
 
 logger = logging.get_logger(__name__)
 
-def init_distributed_mode():
-    """初始化分布式训练环境"""
-    if torch.cuda.is_available():
-        dist.init_process_group(backend="nccl", init_method="env://")  # 使用 NCCL 后端进行 GPU 训练
-        torch.cuda.set_device(dist.get_rank())  # 设置每个进程使用不同的 GPU
-    else:
-        raise ValueError("CUDA is not available. Please ensure that you are using a machine with multiple GPUs.")
-
 
 
 class CustomSeq2SeqTrainer(Seq2SeqTrainer):
@@ -184,7 +176,6 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
         metric_key_prefix: str = "eval",
         **gen_kwargs,
     ) -> Dict[str, float]:
-        init_distributed_mode()
         logger.info_rank0("Start Eval Math.")
         
         eval_dataset = load_dataset("HuggingFaceH4/MATH-500", split="test")
@@ -204,7 +195,8 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
         # 使用 tqdm 显示进度条
         for i, batch in enumerate(tqdm(dataloader, desc="Processing Batches", ncols=100, unit="batch")):
             # 分配数据到各个卡
-            problems=batch['problem']
+            device = torch.device(f"cuda:{dist.get_rank()}")
+            problems = batch['problem']
             input_texts = [
                 self.tokenizer.apply_chat_template(
                     [
@@ -216,9 +208,12 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
                 )
                 for problem in problems
             ]
-    
+        
             # 对input_texts进行编码
             encoded_inputs = self.tokenizer(input_texts, padding=True, truncation=True, return_tensors="pt")
+
+            # 将编码后的输入转移到对应的 GPU
+            encoded_inputs = {k: v.to(device) for k, v in encoded_inputs.items()}
             
             with torch.cuda.amp.autocast(dtype=torch.bfloat16):
                 generated = model.generate(
