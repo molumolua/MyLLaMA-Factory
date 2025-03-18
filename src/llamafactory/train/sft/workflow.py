@@ -77,38 +77,6 @@ def run_sft(
     elif finetuning_args.compute_accuracy:
         metric_module["compute_metrics"] = ComputeAccuracy()
         metric_module["preprocess_logits_for_metrics"] = eval_logit_processor
-
-    logger.info_rank0("www?")
-    logger.info_rank0("www?")
-    logger.info_rank0("www?")
-    logger.info_rank0("www?")
-    logger.info_rank0("www?")
-    logger.info_rank0("www?")
-    logger.info_rank0("www?")
-    logger.info_rank0("www?")
-    logger.warning_rank0("www?")
-    logger.warning_rank0("www?")
-    logger.warning_rank0("www?")
-    logger.warning_rank0("www?")
-    logger.warning_rank0("www?")
-    logger.warning_rank0("www?")
-    logger.warning_rank0("www?")
-    logger.warning_rank0("www?")
-    logger.warning_rank0("www?")
-    logger.warning_rank0("www?")
-    logger.warning_rank0("www?")
-    logger.warning_rank0_once("www?")
-    logger.warning_rank0_once("www?")
-    logger.warning_rank0_once("www?")
-    logger.warning_rank0_once("www?")
-    logger.warning_rank0_once("www?")
-    logger.warning_rank0_once("www?")
-    logger.warning_rank0_once("www?")
-    logger.warning_rank0_once("www?")
-    logger.warning_rank0_once("www?")
-    logger.warning_rank0_once("www?")
-    logger.warning_rank0_once("www?")
-    logger.warning_rank0_once("www?")
     
     # Initialize our Trainer
     trainer = CustomSeq2SeqTrainer(

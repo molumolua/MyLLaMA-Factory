@@ -114,54 +114,6 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
 
         return loss, generated_tokens, labels
 
-    @override
-    def evaluate(
-        self,
-        eval_dataset: Optional[Dataset] = None,
-        ignore_keys: Optional[List[str]] = None,
-        metric_key_prefix: str = "eval",
-        **gen_kwargs,
-    ) -> Dict[str, float]:
-        # 初始化stop_words，dataset和model
-        logger.info("Start Eval Math.")
-        eval_dataset=load_dataset("HuggingFaceH4/MATH-500",split="test")
-        model =self._wrap_model(self.model,training=False,dataloader=None)
-        logger.info("Load Math Data Successful.")
-        #处理dataset和param
-        input_texts = [
-                    self.tokenizer.apply_chat_template(
-                            [    {"role": "system", "content": "Please reason step by step, and put your final answer within \\boxed{{}}"}
-                                ,{"role": "user", "content": problem['problem']}],
-                            tokenize=False,
-                            add_generation_prompt=True,
-                    )
-                    for problem in eval_dataset
-        ]
-        logger.info(input_texts[0])
-        # sampling_params = SamplingParams(
-        #     max_tokens=32678,
-        #     temperature=0,
-        #     stop=stop_words,
-        #     n=1
-        # )
-        # input_texts = [
-        #             self.tokenizer.apply_chat_template(
-        #                     [    {"role": "user", "content": problem['problem']+"\nPlease reason step by step, and put your final answer within \\boxed{{}}"}],
-        #                     tokenize=False,
-        #                     add_generation_prompt=True,
-        #             )
-        #             for problem in eval_dataset
-        # ]
-        generated_responses = model.generate(input_texts, max_new_tokens=32678,
-            temperature=0,
-            eos_token_id=self.tokenizer.eos_token_id)
-        generated_responses = [generated_response.outputs[0].text for generated_response in generated_responses]
-        score=sum([
-            process_reject_sample(problem,'solution',response,logger) for problem,response in zip(eval_dataset,generated_responses)
-        ])/len(eval_dataset)*100
-        return {f"{metric_key_prefix}_math_score":score}
-    
-
     # @override
     # def evaluate(
     #     self,
@@ -170,56 +122,104 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
     #     metric_key_prefix: str = "eval",
     #     **gen_kwargs,
     # ) -> Dict[str, float]:
+    #     # 初始化stop_words，dataset和model
     #     logger.info("Start Eval Math.")
-    #     eval_dataset = load_dataset("HuggingFaceH4/MATH-500", split="test")
-    #     # 获取模型并确保处于评估模式
-    #     model = self._wrap_model(self.model, training=False, dataloader=None)
-    #     model.eval()
+    #     eval_dataset=load_dataset("HuggingFaceH4/MATH-500",split="test")
+    #     model =self._wrap_model(self.model,training=False,dataloader=None)
     #     logger.info("Load Math Data Successful.")
-        
-    #     # 处理 dataset 和参数
+    #     #处理dataset和param
     #     input_texts = [
-    #         self.tokenizer.apply_chat_template(
-    #             [
-    #                 {"role": "system", "content": "Please reason step by step, and put your final answer within \\boxed{{}}"},
-    #                 {"role": "user", "content": problem['problem']}
-    #             ],
-    #             tokenize=False,
-    #             add_generation_prompt=True,
-    #         )
-    #         for problem in eval_dataset
+    #                 self.tokenizer.apply_chat_template(
+    #                         [    {"role": "system", "content": "Please reason step by step, and put your final answer within \\boxed{{}}"}
+    #                             ,{"role": "user", "content": problem['problem']}],
+    #                         tokenize=False,
+    #                         add_generation_prompt=True,
+    #                 )
+    #                 for problem in eval_dataset
     #     ]
-        
-    #     # 对 input_texts 进行编码
-    #     encoded_inputs = self.tokenizer(input_texts, padding=True, truncation=True, return_tensors="pt")
-    #     encoded_inputs = {k: v.to(model.device) for k, v in encoded_inputs.items()}
-        
-    #     logger.info(f"First input text: {input_texts[0]}")
-    #     logger.info(f"First encoded input: {encoded_inputs['input_ids'][0]}")
+    #     logger.info(input_texts[0])
+    #     # sampling_params = SamplingParams(
+    #     #     max_tokens=32678,
+    #     #     temperature=0,
+    #     #     stop=stop_words,
+    #     #     n=1
+    #     # )
+    #     # input_texts = [
+    #     #             self.tokenizer.apply_chat_template(
+    #     #                     [    {"role": "user", "content": problem['problem']+"\nPlease reason step by step, and put your final answer within \\boxed{{}}"}],
+    #     #                     tokenize=False,
+    #     #                     add_generation_prompt=True,
+    #     #             )
+    #     #             for problem in eval_dataset
+    #     # ]
+    #     generated_responses = model.generate(input_texts, max_new_tokens=32678,
+    #         temperature=0,
+    #         eos_token_id=self.tokenizer.eos_token_id)
+    #     generated_responses = [generated_response.outputs[0].text for generated_response in generated_responses]
+    #     score=sum([
+    #         process_reject_sample(problem,'solution',response,logger) for problem,response in zip(eval_dataset,generated_responses)
+    #     ])/len(eval_dataset)*100
+    #     return {f"{metric_key_prefix}_math_score":score}
+    
 
-    #     # 使用 autocast 在 bfloat16 下进行生成（相当于贪心解码）
-    #     with torch.cuda.amp.autocast(dtype=torch.bfloat16):
-    #         generated_responses = model.generate(
-    #             input_ids=encoded_inputs["input_ids"],
-    #             attention_mask=encoded_inputs["attention_mask"],
-    #             max_new_tokens=32678,
-    #             temperature=1.0,  # 贪心解码
-    #             num_beams=1,      # 保证贪心解码
-    #             eos_token_id=self.tokenizer.eos_token_id
-    #         )
+    @override
+    def evaluate(
+        self,
+        eval_dataset: Optional[Dataset] = None,
+        ignore_keys: Optional[List[str]] = None,
+        metric_key_prefix: str = "eval",
+        **gen_kwargs,
+    ) -> Dict[str, float]:
+        logger.info("Start Eval Math.")
+        eval_dataset = load_dataset("HuggingFaceH4/MATH-500", split="test")
+        # 获取模型并确保处于评估模式
+        model = self._wrap_model(self.model, training=False, dataloader=None)
+        model.eval()
+        logger.info("Load Math Data Successful.")
         
-    #     # 解码生成的响应
-    #     generated_responses = [
-    #         self.tokenizer.decode(generated_response, skip_special_tokens=True) for generated_response in generated_responses
-    #     ]
+        # 处理 dataset 和参数
+        input_texts = [
+            self.tokenizer.apply_chat_template(
+                [
+                    {"role": "system", "content": "Please reason step by step, and put your final answer within \\boxed{{}}"},
+                    {"role": "user", "content": problem['problem']}
+                ],
+                tokenize=False,
+                add_generation_prompt=True,
+            )
+            for problem in eval_dataset
+        ]
         
-    #     # 计算数学正确率
-    #     score = sum([
-    #         process_reject_sample(problem, 'solution', response, logger)
-    #         for problem, response in zip(eval_dataset, generated_responses)
-    #     ]) / len(eval_dataset) * 100
+        # 对 input_texts 进行编码
+        encoded_inputs = self.tokenizer(input_texts, padding=True, truncation=True, return_tensors="pt")
+        encoded_inputs = {k: v.to(model.device) for k, v in encoded_inputs.items()}
+        
+        logger.info(f"First input text: {input_texts[0]}")
+        logger.info(f"First encoded input: {encoded_inputs['input_ids'][0]}")
 
-    #     return {f"{metric_key_prefix}_math_score": score}
+        # 使用 autocast 在 bfloat16 下进行生成（相当于贪心解码）
+        with torch.cuda.amp.autocast(dtype=torch.bfloat16):
+            generated_responses = model.generate(
+                input_ids=encoded_inputs["input_ids"],
+                attention_mask=encoded_inputs["attention_mask"],
+                max_new_tokens=32678,
+                temperature=1.0,  # 贪心解码
+                num_beams=1,      # 保证贪心解码
+                eos_token_id=self.tokenizer.eos_token_id
+            )
+        
+        # 解码生成的响应
+        generated_responses = [
+            self.tokenizer.decode(generated_response, skip_special_tokens=True) for generated_response in generated_responses
+        ]
+        
+        # 计算数学正确率
+        score = sum([
+            process_reject_sample(problem, 'solution', response, logger)
+            for problem, response in zip(eval_dataset, generated_responses)
+        ]) / len(eval_dataset) * 100
+
+        return {f"{metric_key_prefix}_math_score": score}
 
     def save_predictions(
         self, dataset: "Dataset", predict_results: "PredictionOutput", skip_special_tokens: bool = True
