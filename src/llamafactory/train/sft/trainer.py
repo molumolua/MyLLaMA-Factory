@@ -34,6 +34,7 @@ from datasets import load_dataset
 from ..math_eval import process_reject_sample
 from torch.utils.data import DataLoader, Dataset, IterableDataset, RandomSampler, SequentialSampler
 from transformers.utils import logging
+from tqdm import tqdm
 
 
 logger = logging.get_logger(__name__)
@@ -203,7 +204,7 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
         input_ids = encoded_inputs["input_ids"]
         attention_mask = encoded_inputs["attention_mask"]
 
-        for i in range(0, input_ids.shape[0], batch_size):
+        for i in tqdm(range(0, len(eval_dataset), batch_size), desc="Processing Batches", ncols=100, unit="batch"):
             batch_input_ids = input_ids[i:i+batch_size]
             batch_attention_mask = attention_mask[i:i+batch_size]
             with torch.cuda.amp.autocast(dtype=torch.bfloat16):
