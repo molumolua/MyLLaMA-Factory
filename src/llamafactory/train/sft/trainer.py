@@ -178,7 +178,7 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
     ) -> Dict[str, float]:
         logger.info_rank0("Start Eval Math.")
         
-        eval_dataset = load_dataset("HuggingFaceH4/MATH-500", split="test")
+        eval_dataset = load_dataset("HuggingFaceH4/MATH-500", split="test")[:10]
         
         
         # 获取模型并确保处于评估模式
@@ -187,7 +187,7 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
         logger.info_rank0("Load Math Data Successful.")
         
         # 使用 DistributedSampler 来处理数据分配
-        batch_size = 1
+        batch_size = 256
         dataloader = get_dataloader(eval_dataset, batch_size)
 
         generated_responses = []
