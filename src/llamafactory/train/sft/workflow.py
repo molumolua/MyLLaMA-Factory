@@ -78,6 +78,8 @@ def run_sft(
         metric_module["compute_metrics"] = ComputeAccuracy()
         metric_module["preprocess_logits_for_metrics"] = eval_logit_processor
 
+
+    print("!!!!!!!!!!!!Load CustomSeq2Seq")
     # Initialize our Trainer
     trainer = CustomSeq2SeqTrainer(
         model=model,

@@ -196,6 +196,8 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
             process_reject_sample(problem,'solution',response,logger) for problem,response in zip(eval_dataset,generated_responses)
         ])/len(eval_dataset)*100
         return {f"{metric_key_prefix}_math_score":score}
+    
+
     # @override
     # def evaluate(
     #     self,
