@@ -201,7 +201,7 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
                 self.tokenizer.apply_chat_template(
                     [
                         {"role": "system", "content": "Please reason step by step, and put your final answer within \\boxed{{}}"},
-                        {"role": "user", "content": problem['problem']}
+                        {"role": "user", "content": problem}
                     ],
                     tokenize=False,
                     add_generation_prompt=True,
