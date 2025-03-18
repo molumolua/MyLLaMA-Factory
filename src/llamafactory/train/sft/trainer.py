@@ -114,42 +114,6 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
 
         return loss, generated_tokens, labels
 
-    def save_predictions(
-        self, dataset: "Dataset", predict_results: "PredictionOutput", skip_special_tokens: bool = True
-    ) -> None:
-        r"""
-        Saves model predictions to `output_dir`.
-
-        A custom behavior that not contained in Seq2SeqTrainer.
-        """
-        if not self.is_world_process_zero():
-            return
-
-        output_prediction_file = os.path.join(self.args.output_dir, "generated_predictions.jsonl")
-        logger.info_rank0(f"Saving prediction results to {output_prediction_file}")
-
-        labels = np.where(
-            predict_results.label_ids != IGNORE_INDEX, predict_results.label_ids, self.processing_class.pad_token_id
-        )
-        preds = np.where(
-            predict_results.predictions != IGNORE_INDEX,
-            predict_results.predictions,
-            self.processing_class.pad_token_id,
-        )
-
-        for i in range(len(preds)):
-            pad_len = np.nonzero(preds[i] != self.processing_class.pad_token_id)[0]
-            if len(pad_len):  # move pad token to last
-                preds[i] = np.concatenate((preds[i][pad_len[0] :], preds[i][: pad_len[0]]), axis=-1)
-
-        decoded_inputs = self.processing_class.batch_decode(dataset["input_ids"], skip_special_tokens=False)
-        decoded_preds = self.processing_class.batch_decode(preds, skip_special_tokens=skip_special_tokens)
-        decoded_labels = self.processing_class.batch_decode(labels, skip_special_tokens=skip_special_tokens)
-
-        with open(output_prediction_file, "w", encoding="utf-8") as f:
-            for text, pred, label in zip(decoded_inputs, decoded_preds, decoded_labels):
-                f.write(json.dumps({"prompt": text, "predict": pred, "label": label}, ensure_ascii=False) + "\n")
-
     @override
     def evaluate(
         self,
@@ -256,3 +220,39 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
     #     ]) / len(eval_dataset) * 100
 
     #     return {f"{metric_key_prefix}_math_score": score}
+
+    def save_predictions(
+        self, dataset: "Dataset", predict_results: "PredictionOutput", skip_special_tokens: bool = True
+    ) -> None:
+        r"""
+        Saves model predictions to `output_dir`.
+
+        A custom behavior that not contained in Seq2SeqTrainer.
+        """
+        if not self.is_world_process_zero():
+            return
+
+        output_prediction_file = os.path.join(self.args.output_dir, "generated_predictions.jsonl")
+        logger.info_rank0(f"Saving prediction results to {output_prediction_file}")
+
+        labels = np.where(
+            predict_results.label_ids != IGNORE_INDEX, predict_results.label_ids, self.processing_class.pad_token_id
+        )
+        preds = np.where(
+            predict_results.predictions != IGNORE_INDEX,
+            predict_results.predictions,
+            self.processing_class.pad_token_id,
+        )
+
+        for i in range(len(preds)):
+            pad_len = np.nonzero(preds[i] != self.processing_class.pad_token_id)[0]
+            if len(pad_len):  # move pad token to last
+                preds[i] = np.concatenate((preds[i][pad_len[0] :], preds[i][: pad_len[0]]), axis=-1)
+
+        decoded_inputs = self.processing_class.batch_decode(dataset["input_ids"], skip_special_tokens=False)
+        decoded_preds = self.processing_class.batch_decode(preds, skip_special_tokens=skip_special_tokens)
+        decoded_labels = self.processing_class.batch_decode(labels, skip_special_tokens=skip_special_tokens)
+
+        with open(output_prediction_file, "w", encoding="utf-8") as f:
+            for text, pred, label in zip(decoded_inputs, decoded_preds, decoded_labels):
+                f.write(json.dumps({"prompt": text, "predict": pred, "label": label}, ensure_ascii=False) + "\n")
