@@ -196,13 +196,26 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
         # 使用 tqdm 显示进度条
         for i, batch in enumerate(tqdm(dataloader, desc="Processing Batches", ncols=100, unit="batch")):
             # 分配数据到各个卡
-            input_ids = batch['input_ids'].to(model.device)
-            attention_mask = batch['attention_mask'].to(model.device)
+            problems=batch['problem']
+            input_texts = [
+                self.tokenizer.apply_chat_template(
+                    [
+                        {"role": "system", "content": "Please reason step by step, and put your final answer within \\boxed{{}}"},
+                        {"role": "user", "content": problem['problem']}
+                    ],
+                    tokenize=False,
+                    add_generation_prompt=True,
+                )
+                for problem in problems
+            ]
+    
+            # 对input_texts进行编码
+            encoded_inputs = self.tokenizer(input_texts, padding=True, truncation=True, return_tensors="pt")
             
             with torch.cuda.amp.autocast(dtype=torch.bfloat16):
                 generated = model.generate(
-                    input_ids=input_ids,
-                    attention_mask=attention_mask,
+                    input_ids=encoded_inputs["input_ids"],
+                    attention_mask=encoded_inputs["attention_mask"],
                     max_new_tokens=32678,
                     temperature=1.0,
                     num_beams=1,
