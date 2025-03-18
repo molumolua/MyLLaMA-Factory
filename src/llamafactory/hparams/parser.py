@@ -67,7 +67,7 @@ def read_args(args: Optional[Union[Dict[str, Any], List[str]]] = None) -> Union[
 
 
 def _parse_args(
-    parser: "HfArgumentParser", args: Optional[Union[Dict[str, Any], List[str]]] = None, allow_extra_keys: bool = False
+    parser: "HfArgumentParser", args: Optional[Union[Dict[str, Any], List[str]]] = None, allow_extra_keys: bool = True
 ) -> Tuple[Any]:
     args = read_args(args)
     if isinstance(args, dict):
