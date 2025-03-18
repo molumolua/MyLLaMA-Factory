@@ -45,6 +45,13 @@ def get_dataloader(dataset, batch_size):
 
 logger = logging.get_logger(__name__)
 
+def init_distributed_mode():
+    """初始化分布式训练环境"""
+    if torch.cuda.is_available():
+        dist.init_process_group(backend="nccl", init_method="env://")  # 使用 NCCL 后端进行 GPU 训练
+        torch.cuda.set_device(dist.get_rank())  # 设置每个进程使用不同的 GPU
+    else:
+        raise ValueError("CUDA is not available. Please ensure that you are using a machine with multiple GPUs.")
 
 
 
@@ -177,6 +184,7 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
         metric_key_prefix: str = "eval",
         **gen_kwargs,
     ) -> Dict[str, float]:
+        init_distributed_mode()
         logger.info_rank0("Start Eval Math.")
         
         eval_dataset = load_dataset("HuggingFaceH4/MATH-500", split="test")
