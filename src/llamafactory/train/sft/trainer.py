@@ -195,23 +195,31 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
         encoded_inputs = {k: v.to(model.device) for k, v in encoded_inputs.items()}
         
         logger.info(f"First input text: {input_texts[0]}")
-        logger.info(f"First encoded input: {encoded_inputs['input_ids'][0]}")
+        # logger.info(f"First encoded input: {encoded_inputs['input_ids'][0]}")
 
         # 使用 autocast 在 bfloat16 下进行生成（相当于贪心解码）
-        with torch.cuda.amp.autocast(dtype=torch.bfloat16):
-            generated_responses = model.generate(
-                input_ids=encoded_inputs["input_ids"],
-                attention_mask=encoded_inputs["attention_mask"],
-                max_new_tokens=32678,
-                temperature=1.0,  # 贪心解码
-                num_beams=1,      # 保证贪心解码
-                eos_token_id=self.tokenizer.eos_token_id
-            )
-        
-        # 解码生成的响应
-        generated_responses = [
-            self.tokenizer.decode(generated_response, skip_special_tokens=True) for generated_response in generated_responses
-        ]
+        batch_size = 32
+        generated_responses = []
+        input_ids = encoded_inputs["input_ids"]
+        attention_mask = encoded_inputs["attention_mask"]
+
+        for i in range(0, input_ids.shape[0], batch_size):
+            batch_input_ids = input_ids[i:i+batch_size]
+            batch_attention_mask = attention_mask[i:i+batch_size]
+            with torch.cuda.amp.autocast(dtype=torch.bfloat16):
+                batch_generated = model.generate(
+                    input_ids=batch_input_ids,
+                    attention_mask=batch_attention_mask,
+                    max_new_tokens=32678,
+                    temperature=1.0,
+                    num_beams=1,
+                    eos_token_id=self.tokenizer.eos_token_id
+                )
+            batch_decoded = [
+                self.tokenizer.decode(g, skip_special_tokens=True)
+                for g in batch_generated
+            ]
+            generated_responses.extend(batch_decoded)
         
         # 计算数学正确率
         score = sum([
