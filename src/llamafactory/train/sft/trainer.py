@@ -182,13 +182,15 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
         
         
         # 获取模型并确保处于评估模式
-        model = self._wrap_model(self.model, training=False, dataloader=None)
-        model.eval()
-        logger.info_rank0("Load Math Data Successful.")
+        logger.info_rank0(f"Load Math Data Success. Len {len(eval_dataset)}.")
         
         # 使用 DistributedSampler 来处理数据分配
-        batch_size = 256
+        batch_size = 1
         dataloader = get_dataloader(eval_dataset, batch_size)
+        model = self._wrap_model(self.model, training=False, dataloader=dataloader)
+        model.eval()
+        
+        logger.info_rank0("Model Wrap Success.")
 
         generated_responses = []
 
@@ -196,6 +198,7 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
         for i, batch in enumerate(tqdm(dataloader, desc="Processing Batches", ncols=100, unit="batch")):
             # 分配数据到各个卡
             device = torch.device(f"cuda:{dist.get_rank()}")
+            logger.info(f"Processing Batch {i} in cuda:{dist.get_rank()}")
             problems = batch['problem']
             input_texts = [
                 self.tokenizer.apply_chat_template(
