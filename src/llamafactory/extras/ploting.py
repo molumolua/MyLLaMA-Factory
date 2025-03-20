@@ -99,3 +99,35 @@ def plot_loss(save_dictionary: str, keys: List[str] = ["loss"]) -> None:
         figure_path = os.path.join(save_dictionary, "training_{}.png".format(key.replace("/", "_")))
         plt.savefig(figure_path, format="png", dpi=100)
         print("Figure saved at:", figure_path)
+
+def plot_metric(save_dictionary: str, data,metric_name) -> None:
+    r"""
+    Plots any specified metric curves and saves the image.
+    """
+    plt.switch_backend("agg")
+
+    # Extract the metrics data
+    steps, metrics = [], []
+    for entry in data:
+        if metric_name in entry:
+            steps.append(entry["steps"])
+            metrics.append(entry[metric_name])
+
+    # If no data found for the metric, warn and exit
+    if len(metrics) == 0:
+        print(f"No metric '{metric_name}' found to plot.")
+        return
+
+    # Plotting the metric
+    plt.figure()
+    plt.plot(steps, metrics, color="#1f77b4", alpha=0.4, label="original")
+    plt.plot(steps, smooth(metrics), color="#1f77b4", label="smoothed")
+    plt.title(f"{metric_name} over training steps")
+    plt.xlabel("Step")
+    plt.ylabel(metric_name)
+    plt.legend()
+
+    # Save the figure
+    figure_path = os.path.join(save_dictionary, f"training_{metric_name}.png")
+    plt.savefig(figure_path, format="png", dpi=100)
+    print(f"Figure saved at: {figure_path}")

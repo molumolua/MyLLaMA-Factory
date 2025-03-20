@@ -1,5 +1,5 @@
 ### model
-model_name_or_path: Qwen/Qwen2.5-Math-1.5B-Instruct
+model_name_or_path: Qwen/Qwen2.5-0.5B-Instruct
 trust_remote_code: true
 
 ### method
@@ -11,7 +11,7 @@ lora_target: all
 
 ### dataset
 dataset: identity
-template: llama3
+template: qwen
 cutoff_len: 2048
 max_samples: 1000
 overwrite_cache: true
@@ -35,7 +35,7 @@ bf16: true
 ddp_timeout: 180000000
 
 ### eval
-val_size: 0.1
+val_size: 1
 per_device_eval_batch_size: 1
 eval_strategy: steps
-eval_steps: 1
+eval_steps: 10

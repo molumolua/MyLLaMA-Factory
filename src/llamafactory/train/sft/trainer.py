@@ -167,26 +167,27 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
     #     ])/len(eval_dataset)*100
     #     return {f"{metric_key_prefix}_math_score":score}
     
-
     @override
-    def evaluate(
-        self,
-        eval_dataset: Optional[Dataset] = None,
-        ignore_keys: Optional[List[str]] = None,
-        metric_key_prefix: str = "eval",
-        **gen_kwargs,
-    ) -> Dict[str, float]:
+    def evaluate(self, eval_dataset: Optional[Dataset] = None, ignore_keys: Optional[List[str]] = None, metric_key_prefix: str = "eval", **gen_kwargs) -> Dict[str, float]:
         logger.info_rank0("Start Eval Math.")
         
-        eval_dataset = load_dataset("HuggingFaceH4/MATH-500", split="test")[:10]
+        eval_dataset = load_dataset("json", data_files="./data/test_10.json", split="train")
         
-        
-        # 获取模型并确保处于评估模式
         logger.info_rank0(f"Load Math Data Success. Len {len(eval_dataset)}.")
         
-        # 使用 DistributedSampler 来处理数据分配
-        batch_size = 1
-        dataloader = get_dataloader(eval_dataset, batch_size)
+        # Initialize distributed training if necessary
+        if dist.is_initialized():
+            rank = dist.get_rank()
+            world_size = dist.get_world_size()
+        else:
+            rank = 0
+            world_size = 1
+
+        # Use DistributedSampler for multi-card setup, or no sampler for single-card
+        batch_size = 4
+        sampler = DistributedSampler(eval_dataset, num_replicas=world_size, rank=rank) if dist.is_initialized() else None
+        dataloader = DataLoader(eval_dataset, batch_size=batch_size, sampler=sampler)
+        
         model = self._wrap_model(self.model, training=False, dataloader=dataloader)
         model.eval()
         
@@ -194,11 +195,10 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
 
         generated_responses = []
 
-        # 使用 tqdm 显示进度条
         for i, batch in enumerate(tqdm(dataloader, desc="Processing Batches", ncols=100, unit="batch")):
-            # 分配数据到各个卡
-            device = torch.device(f"cuda:{dist.get_rank()}")
-            logger.info(f"Processing Batch {i} in cuda:{dist.get_rank()}")
+            device = torch.device(f"cuda:{rank}" if dist.is_initialized() else "cuda:0")
+            logger.info(f"Processing Batch {i} in {device}")
+
             problems = batch['problem']
             input_texts = [
                 self.tokenizer.apply_chat_template(
@@ -211,13 +211,10 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
                 )
                 for problem in problems
             ]
-        
-            # 对input_texts进行编码
-            encoded_inputs = self.tokenizer(input_texts, padding=True, truncation=True, return_tensors="pt")
-
-            # 将编码后的输入转移到对应的 GPU
-            encoded_inputs = {k: v.to(device) for k, v in encoded_inputs.items()}
             
+            encoded_inputs = self.tokenizer(input_texts, padding=True, truncation=True, return_tensors="pt")
+            encoded_inputs = {k: v.to(device) for k, v in encoded_inputs.items()}
+
             with torch.cuda.amp.autocast(dtype=torch.bfloat16):
                 generated = model.generate(
                     input_ids=encoded_inputs["input_ids"],
@@ -228,32 +225,58 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
                     eos_token_id=self.tokenizer.eos_token_id
                 )
             
-            # 解码生成的响应
-            batch_decoded = [
-                self.tokenizer.decode(g, skip_special_tokens=True)
-                for g in generated
-            ]
+            batch_decoded = [self.tokenizer.decode(g, skip_special_tokens=True) for g in generated]
             generated_responses.extend(batch_decoded)
 
-        # 收集所有进程的生成结果
+        # Gather results from all processes if distributed
         all_generated_responses = None
-        if dist.get_rank() == 0:
+        if rank == 0:
             all_generated_responses = [generated_responses]
         else:
-            all_generated_responses = dist.gather(generated_responses, dst=0)  # gather results to rank 0
+            all_generated_responses = dist.gather(generated_responses, dst=0)
 
-        # 主进程处理并汇总结果
-        if dist.get_rank() == 0:
-            all_generated_responses = sum(all_generated_responses, [])  # 合并所有生成的响应
-
-            # 计算数学正确率
+        if rank == 0:
+            print(all_generated_responses[0])
+            all_generated_responses = sum(all_generated_responses, [])
             score = sum([
-                process_reject_sample(problem, 'solution', response, logger)
+                process_reject_sample(problem, 'solution', response, logger,timeout=0)
                 for problem, response in zip(eval_dataset, all_generated_responses)
             ]) / len(eval_dataset) * 100
 
-            return {f"{metric_key_prefix}_math_score": score}
+            return { "steps":self.state.global_step,
+                    f"{metric_key_prefix}_math_score": score}
+    @override   
+    def _evaluate(self, trial, ignore_keys_for_eval, skip_scheduler=False):
+        metrics = self.evaluate(ignore_keys=ignore_keys_for_eval)
+        self._report_to_hp_search(trial, self.state.global_step, metrics)
 
+        # Run delayed LR scheduler now that metrics are populated
+        if isinstance(self.lr_scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau) and not skip_scheduler:
+            metric_to_check = self.args.metric_for_best_model
+            if not metric_to_check.startswith("eval_"):
+                metric_to_check = f"eval_{metric_to_check}"
+            try:
+                self.lr_scheduler.step(metrics[metric_to_check])
+            except KeyError as exc:
+                raise KeyError(
+                    f"The `metric_for_best_model` training argument is set to '{metric_to_check}', which is not found in the evaluation metrics. "
+                    f"The available evaluation metrics are: {list(metrics.keys())}. Consider changing the `metric_for_best_model` via the TrainingArguments."
+                ) from exc
+        # eval MATH
+        metrics_file = os.path.join(self.args.output_dir, "eval_metrics.json")
+        if os.path.exists(metrics_file):
+            with open(metrics_file, 'r') as f:
+                all_metrics = json.load(f)
+        else:
+            all_metrics = []  # Initialize an empty list if the file doesn't exist
+
+        # Append the new metrics to the list
+        all_metrics.append(metrics)
+
+        # Save the updated metrics list back to the JSON file
+        with open(metrics_file, 'w') as f:
+            json.dump(all_metrics, f, indent=4)
+        return metrics
     def save_predictions(
         self, dataset: "Dataset", predict_results: "PredictionOutput", skip_special_tokens: bool = True
     ) -> None:

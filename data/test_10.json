@@ -1,0 +1,82 @@
+[
+    {
+        "problem": "There exist two complex numbers $c$, say $c_1$ and $c_2$, so that $-5 + 3i$, $8 - i$, and $c$ form the vertices of an equilateral triangle.  Find the product $c_1 c_2$.\n\n[asy]\nunitsize(0.5 cm);\n\npair A, B;\npair[] C;\n\nA = (2,2);\nB = (5,1);\nC[1] = rotate(60,A)*(B);\nC[2] = rotate(60,B)*(A);\n\ndraw(A--C[1]--B--C[2]--cycle);\ndraw(A--B);\n\ndot(\"$-5 + 3i$\", A, W);\ndot(\"$8 - i$\", B, E);\ndot(\"$c_1$\", C[1], N);\ndot(\"$c_2$\", C[2], S);\n[/asy]",
+        "level": "Level 5",
+        "solution": "Let $a = 2 + 2i$ and $b = 5 + i$.  Let $\\omega = e^{i \\pi/3}$.  Then $\\omega^3 = e^{i \\pi} = -1$, so $\\omega^3 + 1 = 0$, which factors as\n\\[(\\omega + 1)(\\omega^2 - \\omega + 1) = 0.\\]Since $\\omega \\neq -1$, we have that $\\omega^2 - \\omega + 1 = 0$.\n\nWe can obtain the complex number $c_1$ by rotating the number $b$ around the number $a$ counter-clockwise by $\\pi/3$.\n\n[asy]\nsize(100);\n\npair A, B;\npair[] C;\n\nA = (2,2);\nB = (5,1);\nC[1] = rotate(60,A)*(B);\nC[2] = rotate(60,B)*(A);\n\ndraw(B--A--C[1]);\ndraw(interp(A,B,0.3)..interp(A,rotate(30,A)*(B),0.3)..interp(A,C[1],0.3),Arrow(8));\n\ndot(\"$a$\", A, W);\ndot(\"$b$\", B, E);\ndot(\"$c_1$\", C[1], N);\nlabel(\"$\\frac{\\pi}{3}$\", interp(A,rotate(30,A)*(B),0.3), E);\n[/asy]\n\nThis gives us the equation\n\\[c_1 - a = \\omega (b - a),\\]so $c_1 = \\omega (b - a) + a$.\n\nSimilarly, we can obtain the complex number $c_2$ by rotating the number $a$ around the number $b$ counter-clockwise by $\\pi/3$.\n\n[asy]\nsize(100);\n\npair A, B;\npair[] C;\n\nA = (2,2);\nB = (5,1);\nC[1] = rotate(60,A)*(B);\nC[2] = rotate(60,B)*(A);\n\ndraw(A--B--C[2]);\ndraw(interp(B,A,0.3)..interp(B,rotate(30,B)*(A),0.3)..interp(B,C[2],0.3),Arrow(8));\n\ndot(\"$a$\", A, W);\ndot(\"$b$\", B, E);\ndot(\"$c_2$\", C[2], S);\nlabel(\"$\\frac{\\pi}{3}$\", interp(B,rotate(30,B)*(A),0.3), W);\n[/asy]\n\nThis gives us the equation\n\\[c_2 - b = \\omega (a - b),\\]so $c_2 = \\omega (a - b) + b$.\n\nThen\n\\begin{align*}\nc_1 c_2 &= [\\omega (b - a) + a][\\omega (a - b) + b] \\\\\n&= -\\omega^2 (a - b)^2 + \\omega a(a - b) + \\omega b(b - a) + ab \\\\\n&= -\\omega^2 (a - b)^2 + \\omega (a - b)^2 + ab.\n\\end{align*}Since $\\omega^2 - \\omega + 1 = 0$ ($\\omega$ is a primitive sixth root of unity), we have $\\omega^2 = \\omega - 1$, so\n\\begin{align*}\nc_1 c_2 &= (1 - \\omega) (a - b)^2 + \\omega (a - b)^2 + ab \\\\\n&= (a - b)^2 + ab \\\\\n&= a^2 - ab + b^2.\n\\end{align*}Substituting $a = -5 + 3i$ and $b = 8 - i$, we get\n\\[c_1 c_2 = (-5 + 3i)^2 - (-5 + 3i)(8 - i) + (8 - i)^2 = \\boxed{116 - 75i}.\\]",
+        "subject": "Precalculus",
+        "unique_id": "test/precalculus/1119.json",
+        "answer": "116 - 75i"
+    },
+    {
+        "problem": "Let $a$ be a factor of $b,$ and let $b$ and $c$ be divisors of $60$ such that $a<b<c<60.$ Which of the following statements is/are false? List the letters in alphabetical order with commas separating the letters.\n\n$\\bullet$ A.) $a$ must be a divisor of $60.$\n\n$\\bullet$ B.) $60$ must be a multiple of $b.$\n\n$\\bullet$ C.) $b$ must be a factor of $c.$\n\n$\\bullet$ D.) $a$ cannot be $20.$\n\n$\\bullet$ E.) It is possible for $b$ to be negative.",
+        "level": "Level 5",
+        "solution": "A) By the definition of factor, there must be some integer $n$ such that $60=b \\cdot n.$ In addition, there must be some integer $m$ such that $b= a \\cdot m.$ Substituting the second equation into the first yields $60=(a \\cdot m) \\cdot n=a \\cdot (mn).$ Because $m$ and $n$ are integers, so is $mn.$ Thus, $a$ is a factor of $60.$ This statement is true.\n\nB) By the definition of divisor, there must exist some integer $n$ such that $60=b \\cdot n.$ However, because $n$ is an integer, this also means that $60$ is a multiple of $b.$ This statement is true.\n\nC) $b$ and $c$ are both factors of 60, and $b<c.$ In many cases, this statement is true. However, there are counterexamples. For example, $c=30$ and $b=20.$ Both numbers are divisors of $60,$ but $20$ is not a factor of $30$ because there is no integer $n$ such that $30=20 \\cdot n.$ This statement is false.\n\nD) If $a$ were to be $20,$ then the given inequality would be $20<b<c<60$ where $b$ and $c$ are factors of $60.$ Listing out the factors of $60,$ we see $1,$ $2,$ $3,$ $4,$ $5,$ $6,$ $10,$ $12,$ $15,$ $20,$ $30,$ $60.$ However, there is only one factor of $60$ that is between $20$ and $60,$ so it is impossible to choose a $b$ and $c$ that satisfy the conditions. Thus, this statement is true.\n\nE) If $b$ is negative, then by the given inequality, so is $a$ because $a<b.$ We also know that $a$ is a divisor of $b.$ Thus, there exists an integer $n$ such that $b=a \\cdot n.$ Dividing both sides by $a$ yields $n=\\frac{b}{a}.$ Because both $a$ and $b$ are negative, $n$ must be positive. Recall that $\\frac{x}{y}=\\frac{-x}{-y}.$ Thus, the fraction $\\frac{b}{a}$ where $a<b$ and both are negative is the same as the fraction $\\frac{-b}{-a}$ where $-a>-b.$ However, because both the numerator and denominator are positive, and the denominator is greater than the numerator, it is impossible for this fraction to be an integer. But $n$ must be an integer, so this statement is false.\n\nThus, the false statements are $\\boxed{\\text{C,E}}.$",
+        "subject": "Number Theory",
+        "unique_id": "test/number_theory/1168.json",
+        "answer": "\\text{C,E}"
+    },
+    {
+        "problem": "If $n$ is an integer, $1 \\leq n \\leq 2010,$ how many fractions $\\frac{n^2}{2010}$ yield repeating decimals?",
+        "level": "Level 5",
+        "solution": "We first compute the prime factorization of 2010, which is $2 \\cdot 3 \\cdot 5 \\cdot 67$. Therefore, if we want $\\frac{n^2}{2010}$ to be a repeating decimal, then $n^2$ cannot be divisible by 3 and 67 at the same time. If this were the case, then we could convert our fraction to $\\frac{k}{10}$, where $201k = n^2$, and $\\frac{k}{10}$ is clearly a terminating decimal. Conversely, no simplified terminating decimal has a factor of 3 or 67 in the denominator. It follows that if $n$ is not divisible by $3\\cdot 67$, then $n$ is a repeating decimal. Therefore, we need to compute the number of values of $n$ that yield squares which are not divisible by 3 and 67. However, $n^2$ is divisible by 3 and 67 if and only if $n$ must be divisible by 3 and 67. Therefore, $n$ cannot be divisible by $3 \\cdot 67=201$. There are $10$ multiplies of $201$ which are less than or equal to $2010$, so there are $2010 - 10 = \\boxed{2000}$ values of $n$ that yield a fraction $\\frac{n^2}{2010}$ which is a repeating decimal.",
+        "subject": "Number Theory",
+        "unique_id": "test/number_theory/1191.json",
+        "answer": "2000"
+    },
+    {
+        "problem": "Find the smallest positive real number $C$ for which\n\\[\\left\\| \\begin{pmatrix} 2 & 3 \\\\ 0 & -2 \\end{pmatrix} \\bold{v} \\right\\| \\le C \\|\\bold{v}\\|\\]for all two-dimensional vectors $\\bold{v}.$\n\nNote that for a two-dimensional vector $\\mathbf{a},$ $\\|\\mathbf{a}\\|$ is the magnitude of $\\mathbf{a}.$",
+        "level": "Level 5",
+        "solution": "Let $\\bold{v} = \\begin{pmatrix} x \\\\ y \\end{pmatrix}$.  Then\n\\[\\|\\bold{v}\\| = \\left\\| \\begin{pmatrix} x \\\\ y \\end{pmatrix} \\right\\| = \\sqrt{x^2 + y^2},\\]and\n\\begin{align*}\n\\left\\| \\begin{pmatrix} 2 & 3 \\\\ 0 & -2 \\end{pmatrix} \\bold{v} \\right\\| &= \\left\\| \\begin{pmatrix} 2 & 3 \\\\ 0 & -2 \\end{pmatrix} \\begin{pmatrix} x \\\\ y \\end{pmatrix} \\right\\| \\\\\n&= \\left\\| \\begin{pmatrix} 2x + 3y \\\\ -2y \\end{pmatrix} \\right\\| \\\\\n&= \\sqrt{(2x + 3y)^2 + (-2y)^2} \\\\\n&= \\sqrt{4x^2 + 12xy + 13y^2},\n\\end{align*}so the given inequality becomes\n\\[\\sqrt{4x^2 + 12xy + 13y^2} \\le C \\sqrt{x^2 + y^2},\\]or\n\\[\\sqrt{\\frac{4x^2 + 12xy + 13y^2}{x^2 + y^2}} \\le C.\\]Thus, we can think of $C$ as the maximum value of the expression in the left-hand side.\n\nMaximizing the expression in the left-hand side is equivalent to maximizing its square, namely\n\\[\\frac{4x^2 + 12xy + 13y^2}{x^2 + y^2}.\\]Let $k$ be a possible value of this expression, which means the equation\n\\[\\frac{4x^2 + 12xy + 13y^2}{x^2 + y^2} = k\\]has a solution in $x$ and $y$.  We can re-write this equation as\n\\[(4 - k) x^2 + 12xy + (13 - k) y^2 = 0.\\]For this quadratic expression to have a solution in $x$ and $y$, its discriminant must be nonnegative.  In other words,\n\\[12^2 - 4 (4 - k)(13 - k) \\ge 0,\\]or $4k^2 - 68k + 64 \\le 0$.  This inequality factors as $4(k - 1)(k - 16) \\le 0$.  The largest value of $k$ that satisfies this inequality is 16, so the value of $C$ we seek is $\\sqrt{16} = \\boxed{4}$.  Note that equality occurs for\n\\[\\bold{v} = \\begin{pmatrix} 1 \\\\ 2 \\end{pmatrix}.\\]",
+        "subject": "Precalculus",
+        "unique_id": "test/precalculus/675.json",
+        "answer": "4"
+    },
+    {
+        "problem": "Let $f(x)$ be the polynomial \\[f(x)=x^7-3x^3+2.\\]If $g(x) = f(x + 1)$, what is the sum of the coefficients of $g(x)$?",
+        "level": "Level 5",
+        "solution": "The sum of the coefficients of $g(x)$ can be found by evaluating $g(1)$.  Since $g(x)=f(x+1)$, we know that $g(1)=f(2)$.  Therefore the sum of the coefficients is equal to $f(2)=2^7-3 \\cdot 2^3 + 2 = 128 - 24 + 2 = \\boxed{106}.$",
+        "subject": "Algebra",
+        "unique_id": "test/algebra/1227.json",
+        "answer": "106"
+    },
+    {
+        "problem": "If \\[\\frac{x}{y} = \\frac{4}{5}, \\; \\frac{y}{z} = \\frac{3}{10}, \\;\\text{and} \\; \\frac{z}{w} = \\frac{6}{7},\\] what is the value of $\\dfrac{x + y + w}{z}$? Express your answer as a common fraction.",
+        "level": "Level 5",
+        "solution": "If we multiply the first two fractions, we can find the value of $x/z$: $$\\frac{x}{y}\\cdot\\frac{y}{z}=\\frac{x}{z}=\\frac{4}{5}\\cdot\\frac{3}{10}=\\frac{12}{50}.$$\n\nInverting the given $\\dfrac{z}{w} = \\dfrac{6}{7}$ gives $$\\frac{w}{z}=\\frac{7}{6}.$$\n\nAdding these results to the given value of $y/z$ gives the value we are looking for: \\begin{align*}\n\\frac{x}{z}+\\frac{y}{z}+\\frac{w}{z}&=\\frac{x+y+w}{z} \\\\&= \\frac{12}{50}+\\frac{7}{6}+\\frac{3}{10}\\\\\n& = \\frac{36}{150}+\\frac{175}{150}+\\frac{45}{150}\\\\\n& = \\frac{256}{150} \\\\\n&= \\boxed{\\frac{128}{75}}.\\end{align*}",
+        "subject": "Algebra",
+        "unique_id": "test/algebra/2285.json",
+        "answer": "\\frac{128}{75}"
+    },
+    {
+        "problem": "A regular tetrahedron is a pyramid with four faces, each of which is an equilateral triangle.\n\nLet $V$ be the volume of a regular tetrahedron whose sides each have length $1$. What is the exact value of $V^2$ ?",
+        "level": "Level 5",
+        "solution": "Let $A,B,C,$ and $D$ be the corners of a regular tetrahedron of side length $1$. Let $P$ be the foot of the perpendicular from $D$ to face $ABC$, and let $h$ be the height $DP$: [asy]\nimport three;\ntriple a = (0,0,0);\ntriple b = (1,0,0);\ntriple c = (1/2,sqrt(3)/2,0);\ntriple d = (1/2,sqrt(3)/6,sqrt(6)/3);\ntriple p = (a+b+c)/3;\n\ndraw(surface(a--b--c--cycle),pink,nolight);\ndraw(b--c--d--b);\ndraw(c--a--b,dashed); draw(a--d--p--b,dashed);\ndraw(p+(d-p)*0.08--p+(d-p)*0.08+(b-p)*sqrt(2)*0.08--p+(b-p)*sqrt(2)*0.08);\ndot(a); dot(b); dot(c); dot(d); dot(p);\nlabel(\"$A$\",a,ENE);\nlabel(\"$B$\",b,WSW);\nlabel(\"$C$\",c,ESE);\nlabel(\"$D$\",d,N);\nlabel(\"$P$\",p,E);\nlabel(\"$h$\",0.45*d+0.55*p,W);\n[/asy] Then, by the Pythagorean theorem, we have $$h^2+(PA)^2 = h^2+(PB)^2 = h^2+(PC)^2 = 1,$$so $PA=PB=PC$. The only point on face $ABC$ that is equidistant from $A,B,$ and $C$ is the intersection of the altitudes. If $M$ is the midpoint of $AC$, then $\\triangle CPM$ is a $30^\\circ$-$60^\\circ$-$90^\\circ$ triangle with $CM=\\frac 12$, so $PC=\\frac 2{\\sqrt 3}\\cdot\\frac 12=\\frac 1{\\sqrt 3}$.\n\nTherefore, $$h=\\sqrt{1-(PC)^2} = \\sqrt{1-\\left(\\frac 1{\\sqrt 3}\\right)^2} = \\sqrt{1-\\frac 13} = \\sqrt{\\frac 23} = \\frac{\\sqrt 2}{\\sqrt 3},$$and the volume of tetrahedron $ABCD$ is \\begin{align*}\nV &= \\frac 13\\cdot(\\text{area of }\\triangle ABC)\\cdot h \\\\\n&= \\frac 13\\cdot\\left(\\frac 12\\cdot 1\\cdot \\frac{\\sqrt 3}2\\right)\\cdot \\frac{\\sqrt 2}{\\sqrt 3} \\\\\n&= \\frac{\\sqrt 2}{12};\n\\end{align*}the square of the volume is $$V^2 = \\left(\\frac{\\sqrt 2}{12}\\right)^2 = \\frac{2}{144} = \\boxed{\\frac 1{72}}.$$",
+        "subject": "Geometry",
+        "unique_id": "test/geometry/515.json",
+        "answer": "\\frac 1{72}"
+    },
+    {
+        "problem": "What is the range of the function $$f(x) = \\frac{1}{1-x}~?$$ Express your answer in interval notation.",
+        "level": "Level 5",
+        "solution": "Every real number can be expressed in the form $1-x$ for some real $x$, and every real number except $0$ can be expressed as the reciprocal of some real number. Therefore, the range of $f(x)=\\frac{1}{1-x}$ consists of all real numbers except $0$. In interval notation, this is $\\boxed{(-\\infty,0)\\cup (0,\\infty)}$.",
+        "subject": "Algebra",
+        "unique_id": "test/algebra/318.json",
+        "answer": "(-\\infty,0)\\cup (0,\\infty)"
+    },
+    {
+        "problem": "A rectangular field is enclosed in an athletic track, as shown below.  The track consists of two edges of the field, and two semicircles.  The length of the track is 400 meters.  What is the largest possible area of the field, in square meters?\n\n[asy]\nunitsize(1 cm);\n\nfilldraw((0,0)--(3,0)--(3,2)--(0,2)--cycle,lightgreen);\ndraw((0,0)--(3,0),linewidth(2*bp));\ndraw((0,2)--(3,2),linewidth(2*bp));\ndraw(arc((3,1),1,-90,90),linewidth(2*bp));\ndraw(arc((0,1),1,90,270),linewidth(2*bp));\n[/asy]",
+        "level": "Level 5",
+        "solution": "Let the width of the rectangle be $w,$ and let the radius of each semicircle be $r.$\n\n[asy]\nunitsize(1 cm);\n\nfilldraw((0,0)--(3,0)--(3,2)--(0,2)--cycle,lightgreen);\ndraw((0,0)--(3,0),linewidth(2*bp));\ndraw((0,2)--(3,2),linewidth(2*bp));\ndraw(arc((3,1),1,-90,90),linewidth(2*bp));\ndraw(arc((0,1),1,90,270),linewidth(2*bp));\n\nlabel(\"$w$\", (1.5,0), S);\nlabel(\"$r$\", (3,1/2), E);\ndot((3,1));\n[/asy]\n\nThen the length of the track is $2w + 2 \\pi r = 400,$ so $w + \\pi r = 200.$  By AM-GM,\n\\[200 = w + \\pi r \\ge 2 \\sqrt{w \\pi r},\\]so $\\sqrt{w \\pi r} \\le 100.$  Then $w \\pi r \\le 10000,$ so\n\\[wr \\le \\frac{10000}{\\pi}.\\]Then the area of the field, $2wr,$ must satisfy\n\\[2wr \\le \\frac{20000}{\\pi}.\\]Equality occurs when $w = 100$ and $r = \\frac{100}{\\pi},$ so the largest possible area is $\\boxed{\\frac{20000}{\\pi}}.$",
+        "subject": "Intermediate Algebra",
+        "unique_id": "test/intermediate_algebra/1111.json",
+        "answer": "\\frac{20000}{\\pi}"
+    },
+    {
+        "problem": "How many different positive integers divisible by 4 can be formed using each of the digits 1, 2, 3, and 4 at most once, and no other digits? For example, 12 counts, but 512 does not.",
+        "level": "Level 5",
+        "solution": "The only one-digit integer divisible by $4$ that we can construct is $4$.\n\nWe can construct $3$ two-digit integers divisible by $4$: $12$, $32$, and $24$.\n\nAn integer is divisible by $4$ if its rightmost two digits are divisible by $4$.  Thus we can append either or both of the remaining two digits to any of these two-digit integers and preserve divisibility by $4$.  For each, there are $2$ ways to choose one digit to append, and $2$ ways to order the digits if we append both of them.  Thus we get $4$ more integers for each, or $12$ total.\n\nThe full number is $12+3+1=\\boxed{16}$ integers.",
+        "subject": "Counting & Probability",
+        "unique_id": "test/counting_and_probability/903.json",
+        "answer": "16"
+    }
+]

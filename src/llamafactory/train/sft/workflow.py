@@ -21,13 +21,14 @@ from ...data import SFTDataCollatorWith4DAttentionMask, get_dataset, get_templat
 from ...extras.constants import IGNORE_INDEX
 from ...extras.logging import get_logger
 from ...extras.misc import calculate_tps, get_logits_processor
-from ...extras.ploting import plot_loss
+from ...extras.ploting import plot_loss,plot_metric
 from ...model import load_model, load_tokenizer
 from ..trainer_utils import create_modelcard_and_push
 from .metric import ComputeAccuracy, ComputeSimilarity, eval_logit_processor
 from .trainer import CustomSeq2SeqTrainer
 
-
+import json
+import os
 if TYPE_CHECKING:
     from transformers import Seq2SeqTrainingArguments, TrainerCallback
 
@@ -77,7 +78,6 @@ def run_sft(
     elif finetuning_args.compute_accuracy:
         metric_module["compute_metrics"] = ComputeAccuracy()
         metric_module["preprocess_logits_for_metrics"] = eval_logit_processor
-    
     # Initialize our Trainer
     trainer = CustomSeq2SeqTrainer(
         model=model,
@@ -89,7 +89,10 @@ def run_sft(
         **tokenizer_module,
         **metric_module,
     )
-
+    # 清空eval metrics
+    metrics_file = os.path.join(trainer.args.output_dir, "eval_metrics.json")
+    with open(metrics_file, 'w') as f:
+        json.dump([], f, indent=4)
     # Keyword arguments for `model.generate`
     gen_kwargs = generating_args.to_dict(obey_generation_config=True)
     gen_kwargs["eos_token_id"] = [tokenizer.eos_token_id] + tokenizer.additional_special_tokens_ids
@@ -110,6 +113,10 @@ def run_sft(
         trainer.save_state()
         if trainer.is_world_process_zero() and finetuning_args.plot_loss:
             plot_loss(training_args.output_dir, keys=["loss", "eval_loss", "eval_accuracy"])
+        with open(metrics_file, 'r') as f:
+            math_metrics = json.load(f)
+        plot_metric(training_args.output_dir,math_metrics,"eval_math_score")
+        
 
     if training_args.predict_with_generate:
         tokenizer.padding_side = "left"  # use left-padding in generation

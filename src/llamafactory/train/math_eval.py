@@ -39,29 +39,41 @@ def process_reject_sample(problem, section,response, logger,timeout=10):
         target=_worker_func,
         args=(return_dict, problem, response)
     )
+    if timeout ==0:
+        try:
+            if problem and problem.get(section) and response:
+                result = reject_sample(response, problem[section],timeout=False)
+                return result
+            else:
+                logger.warning("Missing data for reject sample.")
+                return False
+        except Exception as e:
+            logger.error(f"Error in reject_sample: {e}")
+            return False
+    else:
+        try:
+            # 启动子进程
+            p.start()
+            # 设置最大等待时间20秒
+            p.join(timeout=timeout)
 
-    try:
-        # 启动子进程
-        p.start()
-        # 设置最大等待时间20秒
-        p.join(timeout=timeout)
+            # 如果子进程还存活，说明超时
+            if p.is_alive():
+                logger.warning(problem)
+                logger.warning(response)
+                logger.warning(f"process_reject_sample exceeded the timeout limit of {timeout} seconds.")
+                p.terminate()   # 终止子进程
+                p.join()        # 回收子进程
+                return False
 
-        # 如果子进程还存活，说明超时
-        if p.is_alive():
-            logger.warning(problem)
-            logger.warning(response)
-            logger.warning(f"process_reject_sample exceeded the timeout limit of {timeout} seconds.")
-            p.terminate()   # 终止子进程
-            p.join()        # 回收子进程
+            # 如果没超时就获取执行结果
+            result = return_dict.get('result', False)
+            return result
+
+        except Exception as e:
+            logger.error(f"Exception in process_reject_sample: {e}")
+            if p.is_alive():
+                p.terminate()
+                p.join()
             return False
 
-        # 如果没超时就获取执行结果
-        result = return_dict.get('result', False)
-        return result
-
-    except Exception as e:
-        logger.error(f"Exception in process_reject_sample: {e}")
-        if p.is_alive():
-            p.terminate()
-            p.join()
-        return False
