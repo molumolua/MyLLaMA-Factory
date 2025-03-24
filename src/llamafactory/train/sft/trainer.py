@@ -171,7 +171,7 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
     def evaluate(self, eval_dataset: Optional[Dataset] = None, ignore_keys: Optional[List[str]] = None, metric_key_prefix: str = "eval", **gen_kwargs) -> Dict[str, float]:
         logger.info_rank0("Start Eval Math.")
         
-        eval_dataset = load_dataset("json", data_files="./data/test_10.json", split="train")
+        eval_dataset = load_dataset("json", data_files="./data/test_50.json", split="train")
         
         logger.info_rank0(f"Load Math Data Success. Len {len(eval_dataset)}.")
         
@@ -186,7 +186,18 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
         # Use DistributedSampler for multi-card setup, or no sampler for single-card
         batch_size = 4
         sampler = DistributedSampler(eval_dataset, num_replicas=world_size, rank=rank) if dist.is_initialized() else None
-        dataloader = DataLoader(eval_dataset, batch_size=batch_size, sampler=sampler)
+        dataloader = DataLoader(
+            eval_dataset, 
+            batch_size=batch_size, 
+            sampler=sampler, 
+            pin_memory=True,       # 加速数据传输
+            num_workers=4          # 根据实际情况调整进程数
+        )
+        
+        # 设置 tokenizer 为左侧填充，解决 decoder-only 模型的右填充问题
+        self.tokenizer.padding_side = "left"
+        # 如果 pad_token_id 未设置，则尝试使用 eos_token_id 或 eos_token 对应的 id
+        self.tokenizer.pad_token = self.tokenizer.eos_token
         
         model = self._wrap_model(self.model, training=False, dataloader=dataloader)
         model.eval()
@@ -198,35 +209,32 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
         for i, batch in enumerate(tqdm(dataloader, desc="Processing Batches", ncols=100, unit="batch")):
             device = torch.device(f"cuda:{rank}" if dist.is_initialized() else "cuda:0")
             logger.info(f"Processing Batch {i} in {device}")
+            with torch.no_grad():  # 禁用梯度计算以降低GPU占用
+                with torch.amp.autocast('cuda',dtype=torch.bfloat16):
+                    problems = batch['problem']
+                    input_texts = [
+                        self.tokenizer.apply_chat_template(
+                            [
+                                {"role": "system", "content": "Please reason step by step, and put your final answer within \\boxed{{}}"},
+                                {"role": "user", "content": problem}
+                            ],
+                            tokenize=False,
+                            add_generation_prompt=True,
+                        )
+                        for problem in problems
+                    ]
+                    model_inputs = self.tokenizer(input_texts, return_tensors="pt",padding=True).to(device)
 
-            problems = batch['problem']
-            input_texts = [
-                self.tokenizer.apply_chat_template(
-                    [
-                        {"role": "system", "content": "Please reason step by step, and put your final answer within \\boxed{{}}"},
-                        {"role": "user", "content": problem}
-                    ],
-                    tokenize=False,
-                    add_generation_prompt=True,
-                )
-                for problem in problems
-            ]
-            
-            encoded_inputs = self.tokenizer(input_texts, padding=True, truncation=True, return_tensors="pt")
-            encoded_inputs = {k: v.to(device) for k, v in encoded_inputs.items()}
+                    generated_ids = model.generate(
+                        **model_inputs,
+                        max_new_tokens=2048
+                    )
+                    generated_ids = [
+                        output_ids[len(input_ids):] for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
+                    ]
 
-            with torch.cuda.amp.autocast(dtype=torch.bfloat16):
-                generated = model.generate(
-                    input_ids=encoded_inputs["input_ids"],
-                    attention_mask=encoded_inputs["attention_mask"],
-                    max_new_tokens=32678,
-                    temperature=1.0,
-                    num_beams=1,
-                    eos_token_id=self.tokenizer.eos_token_id
-                )
-            
-            batch_decoded = [self.tokenizer.decode(g, skip_special_tokens=True) for g in generated]
-            generated_responses.extend(batch_decoded)
+                    batch_decoded = self.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
+                    generated_responses.extend(batch_decoded)
 
         # Gather results from all processes if distributed
         all_generated_responses = None
@@ -236,15 +244,16 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
             all_generated_responses = dist.gather(generated_responses, dst=0)
 
         if rank == 0:
-            print(all_generated_responses[0])
             all_generated_responses = sum(all_generated_responses, [])
             score = sum([
-                process_reject_sample(problem, 'solution', response, logger,timeout=0)
+                process_reject_sample(problem, 'solution', response, logger, timeout=0)
                 for problem, response in zip(eval_dataset, all_generated_responses)
             ]) / len(eval_dataset) * 100
 
-            return { "steps":self.state.global_step,
-                    f"{metric_key_prefix}_math_score": score}
+            return {
+                "steps": self.state.global_step,
+                f"{metric_key_prefix}_math_score": score
+            }
     @override   
     def _evaluate(self, trial, ignore_keys_for_eval, skip_scheduler=False):
         metrics = self.evaluate(ignore_keys=ignore_keys_for_eval)
