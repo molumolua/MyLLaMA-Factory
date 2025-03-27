@@ -193,27 +193,29 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
             pin_memory=True,       # 加速数据传输
             num_workers=4          # 根据实际情况调整进程数
         )
-        
+        processing_classs = self.processing_class
         # 设置 tokenizer 为左侧填充，解决 decoder-only 模型的右填充问题
-        self.tokenizer.padding_side = "left"
-        # 如果 pad_token_id 未设置，则尝试使用 eos_token_id 或 eos_token 对应的 id
-        self.tokenizer.pad_token = self.tokenizer.eos_token
+        processing_classs.padding_side = "left"
+        processing_classs.pad_token = processing_classs.eos_token
+        processing_classs.pad_token_id = processing_classs.eos_token_id
         
         model = self._wrap_model(self.model, training=False, dataloader=dataloader)
         model.eval()
+        model.generation_config.pad_token_id = processing_classs.pad_token_id
         
         logger.info_rank0("Model Wrap Success.")
 
-        generated_responses = []
+        answered_problems=[]
 
         for i, batch in enumerate(tqdm(dataloader, desc="Processing Batches", ncols=100, unit="batch")):
             device = torch.device(f"cuda:{rank}" if dist.is_initialized() else "cuda:0")
             logger.info(f"Processing Batch {i} in {device}")
             with torch.no_grad():  # 禁用梯度计算以降低GPU占用
-                with torch.amp.autocast('cuda',dtype=torch.bfloat16):
+                with torch.amp.autocast('cuda', dtype=torch.bfloat16):
                     problems = batch['problem']
+                    solutions = batch['solution']
                     input_texts = [
-                        self.tokenizer.apply_chat_template(
+                        processing_classs.apply_chat_template(
                             [
                                 {"role": "system", "content": "Please reason step by step, and put your final answer within \\boxed{{}}"},
                                 {"role": "user", "content": problem}
@@ -223,37 +225,54 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
                         )
                         for problem in problems
                     ]
-                    model_inputs = self.tokenizer(input_texts, return_tensors="pt",padding=True).to(device)
+                    model_inputs = processing_classs(input_texts, return_tensors="pt", padding=True).to(device)
 
                     generated_ids = model.generate(
                         **model_inputs,
                         max_new_tokens=2048
                     )
+                    # 去除输入部分，只保留模型生成的 token id，并转换为 Python 列表
                     generated_ids = [
-                        output_ids[len(input_ids):] for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
+                        output_ids[len(input_ids):].tolist() 
+                        for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
                     ]
+                    decoded_responses = processing_classs.batch_decode(generated_ids, skip_special_tokens=True)
 
-                    batch_decoded = self.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
-                    generated_responses.extend(batch_decoded)
-
-        # Gather results from all processes if distributed
-        all_generated_responses = None
-        if rank == 0:
-            all_generated_responses = [generated_responses]
-        else:
-            all_generated_responses = dist.gather(generated_responses, dst=0)
-
-        if rank == 0:
-            all_generated_responses = sum(all_generated_responses, [])
+                    for problem,solution,response in zip(problems,solutions,decoded_responses):
+                        logger.info(problem)
+                        logger.info(response)
+                        answered_problems.append({
+                            "problem":problem,
+                            "solution":solution,
+                            "model_answer":response
+                        })
+        if rank == 0:  
             score = sum([
-                process_reject_sample(problem, 'solution', response, logger, timeout=0)
-                for problem, response in zip(eval_dataset, all_generated_responses)
-            ]) / len(eval_dataset) * 100
-
-            return {
+                process_reject_sample(problem, 'solution', problem['model_answer'], logger, timeout=0)
+                for problem in answered_problems
+            ]) / len(answered_problems) * 100
+            metrics = {
                 "steps": self.state.global_step,
                 f"{metric_key_prefix}_math_score": score
             }
+
+            # save result
+            os.makedirs(self.args.output_dir, exist_ok=True)
+            metrics_file = os.path.join(self.args.output_dir, "eval_metrics.json")
+            if os.path.exists(metrics_file):
+                with open(metrics_file, 'r') as f:
+                    all_metrics = json.load(f)
+            else:
+                all_metrics = []  # Initialize an empty list if the file doesn't exist
+
+            # Append the new metrics to the list
+            all_metrics.append(metrics)
+
+            # Save the updated metrics list back to the JSON file
+            with open(metrics_file, 'w') as f:
+                json.dump(all_metrics, f, indent=4)
+
+            return metrics
     @override   
     def _evaluate(self, trial, ignore_keys_for_eval, skip_scheduler=False):
         metrics = self.evaluate(ignore_keys=ignore_keys_for_eval)
@@ -271,20 +290,6 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
                     f"The `metric_for_best_model` training argument is set to '{metric_to_check}', which is not found in the evaluation metrics. "
                     f"The available evaluation metrics are: {list(metrics.keys())}. Consider changing the `metric_for_best_model` via the TrainingArguments."
                 ) from exc
-        # eval MATH
-        metrics_file = os.path.join(self.args.output_dir, "eval_metrics.json")
-        if os.path.exists(metrics_file):
-            with open(metrics_file, 'r') as f:
-                all_metrics = json.load(f)
-        else:
-            all_metrics = []  # Initialize an empty list if the file doesn't exist
-
-        # Append the new metrics to the list
-        all_metrics.append(metrics)
-
-        # Save the updated metrics list back to the JSON file
-        with open(metrics_file, 'w') as f:
-            json.dump(all_metrics, f, indent=4)
         return metrics
     def save_predictions(
         self, dataset: "Dataset", predict_results: "PredictionOutput", skip_special_tokens: bool = True

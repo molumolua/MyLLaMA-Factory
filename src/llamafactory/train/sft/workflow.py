@@ -90,6 +90,7 @@ def run_sft(
         **metric_module,
     )
     # 清空eval metrics
+    os.makedirs(trainer.args.output_dir, exist_ok=True)
     metrics_file = os.path.join(trainer.args.output_dir, "eval_metrics.json")
     with open(metrics_file, 'w') as f:
         json.dump([], f, indent=4)

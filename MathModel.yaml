@@ -1,22 +1,23 @@
 ### model
-model_name_or_path: Qwen/Qwen2.5-Math-1.5B
+model_name_or_path: /data2/xucaijun/Qwen2.5-Math-1.5B
 
 ### method
 stage: sft
 do_train: true
-finetuning_type: lora
+finetuning_type: full
+deepspeed: ds_z3_config.json
 
 ### dataset
-dataset: correct_test_1
+dataset: correct_test_11
 template: qwen
 cutoff_len: 8192
 overwrite_cache: true
 preprocessing_num_workers: 16
 
 ### output
-output_dir: saves/1-Qwen2.5-Math-1.5B/lora/sft
+output_dir: saves/11-Qwen2.5-Math-1.5B/full/sft
 logging_steps: 10
-save_steps: 1000
+save_steps: 50
 plot_loss: true
 overwrite_output_dir: true
 
@@ -34,4 +35,4 @@ ddp_timeout: 180000000
 val_size: 1
 per_device_eval_batch_size: 1
 eval_strategy: steps
-eval_steps: 100
+eval_steps: 50
