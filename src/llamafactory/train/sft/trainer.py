@@ -37,6 +37,7 @@ from ...extras.logging import get_logger
 from tqdm import tqdm
 from torch.utils.data import DataLoader, DistributedSampler
 import torch.distributed as dist
+from transformers import StoppingCriteria, StoppingCriteriaList
 
 def get_dataloader(dataset, batch_size):
     sampler = DistributedSampler(dataset)  # 通过 DistributedSampler 将数据集分配到每张卡上
@@ -44,8 +45,92 @@ def get_dataloader(dataset, batch_size):
     return dataloader
 
 logger = logging.get_logger(__name__)
+class KeywordsStoppingCriteria(StoppingCriteria):
+    def __init__(self, keywords_str, tokenizer):
+        StoppingCriteria.__init__(self)
+        self.current_context = []
+        self.tokenizer = tokenizer
+        self.keywords_str = keywords_str
+    def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor, **kwargs) -> bool:
+        if len(self.current_context) == 0:
+            self.current_context = [[] for _ in range(input_ids.shape[0])]
+
+        # self.current_context.append(input_ids[0][-1].item())
+        sequences_should_be_stopped = []
+        for i in range(input_ids.shape[0]):
+            _id = input_ids[i][-1].item()
+            self.current_context[i].append(_id)
+            current_context = self.tokenizer.decode(self.current_context[i])
+            should_be_stopped = False
+            for word in self.keywords_str:
+                if word in current_context:
+                    should_be_stopped = True
+                    break
+            sequences_should_be_stopped.append(should_be_stopped)
+        return all(sequences_should_be_stopped)
 
 
+@torch.no_grad()
+def generate_completions(model, tokenizer, prompts, batch_size=1, stop_id_sequences=None, add_special_tokens=True, disable_tqdm=False, **generation_kwargs):
+    generations = []
+    if not disable_tqdm:
+        progress = tqdm(total=len(prompts), desc="Generating Completions")
+
+    num_return_sequences = generation_kwargs.get("num_return_sequences", 1)
+    for i in range(0, len(prompts), batch_size):
+        batch_prompts = prompts[i:i+batch_size]
+        tokenized_prompts = tokenizer(batch_prompts, padding="longest", return_tensors="pt", add_special_tokens=add_special_tokens)
+        batch_input_ids = tokenized_prompts.input_ids
+        attention_mask = tokenized_prompts.attention_mask
+
+        if model.device.type == "cuda":
+            batch_input_ids = batch_input_ids.cuda()
+            attention_mask = attention_mask.cuda()
+
+        # try:
+        stop_criteria = KeywordsStoppingCriteria(stop_id_sequences, tokenizer)
+        batch_outputs = model.generate(
+            input_ids=batch_input_ids,
+            attention_mask=attention_mask,
+            stopping_criteria=StoppingCriteriaList([stop_criteria]),
+            # stopping_criteria=[KeyWordsCriteria(stop_id_sequences)] if stop_id_sequences else None,
+            # stopping_criteria=[KeyWordsCriteriaTrunc(stop_id_sequences, batch_input_ids.size(1))] if stop_id_sequences else None,
+            **generation_kwargs
+        )
+
+        # the stopping criteria is applied at batch level, so if other examples are not stopped, the entire batch will continue to generate.
+        # so some outputs still have the stop sequence, which we need to remove.
+        # if stop_id_sequences:
+        #     for output_idx in range(batch_outputs.shape[0]):
+        #         for token_idx in range(batch_input_ids.shape[1], batch_outputs.shape[1]):
+        #             if any(batch_outputs[output_idx, token_idx: token_idx+len(stop_sequence)].tolist() == stop_sequence for stop_sequence in stop_id_sequences):
+        #                 batch_outputs[output_idx, token_idx:] = tokenizer.pad_token_id
+        #                 break
+        
+        # remove the prompt from the output
+        # we need to re-encode the prompt because we need to make sure the special tokens are treated the same way as in the outputs.
+        # we changed our previous way of truncating the output token ids dicrectly because some tokenizer (e.g., llama) won't add space token before the first token.
+        # space is important for some tasks (e.g., code completion).
+        batch_outputs = tokenizer.batch_decode(batch_outputs, skip_special_tokens=True)
+        batch_prompts = tokenizer.batch_decode(batch_input_ids, skip_special_tokens=True)
+        # duplicate the prompts to match the number of return sequences
+        batch_prompts = [prompt for prompt in batch_prompts for _ in range(num_return_sequences)]
+        batch_generations = [
+            output[len(prompt):] for prompt, output in zip(batch_prompts, batch_outputs)
+        ]
+
+        # remove the remain stop sequence from the output.
+        for idx, prediction in enumerate(batch_generations):
+            for stop_sequence in stop_id_sequences:
+                batch_generations[idx] = prediction.split(stop_sequence)[0]
+
+        generations += batch_generations
+
+        if not disable_tqdm:
+            progress.update(len(batch_prompts)//num_return_sequences)
+
+    assert len(generations) == len(prompts) * num_return_sequences, "number of generations should be equal to number of prompts * num_return_sequences"
+    return generations
 
 class CustomSeq2SeqTrainer(Seq2SeqTrainer):
     r"""
@@ -119,53 +204,6 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
             generated_tokens = generated_tokens.contiguous()
 
         return loss, generated_tokens, labels
-
-    # @override
-    # def evaluate(
-    #     self,
-    #     eval_dataset: Optional[Dataset] = None,
-    #     ignore_keys: Optional[List[str]] = None,
-    #     metric_key_prefix: str = "eval",
-    #     **gen_kwargs,
-    # ) -> Dict[str, float]:
-    #     # 初始化stop_words，dataset和model
-    #     logger.info("Start Eval Math.")
-    #     eval_dataset=load_dataset("HuggingFaceH4/MATH-500",split="test")
-    #     model =self._wrap_model(self.model,training=False,dataloader=None)
-    #     logger.info("Load Math Data Successful.")
-    #     #处理dataset和param
-    #     input_texts = [
-    #                 self.tokenizer.apply_chat_template(
-    #                         [    {"role": "system", "content": "Please reason step by step, and put your final answer within \\boxed{{}}"}
-    #                             ,{"role": "user", "content": problem['problem']}],
-    #                         tokenize=False,
-    #                         add_generation_prompt=True,
-    #                 )
-    #                 for problem in eval_dataset
-    #     ]
-    #     logger.info(input_texts[0])
-    #     # sampling_params = SamplingParams(
-    #     #     max_tokens=32678,
-    #     #     temperature=0,
-    #     #     stop=stop_words,
-    #     #     n=1
-    #     # )
-    #     # input_texts = [
-    #     #             self.tokenizer.apply_chat_template(
-    #     #                     [    {"role": "user", "content": problem['problem']+"\nPlease reason step by step, and put your final answer within \\boxed{{}}"}],
-    #     #                     tokenize=False,
-    #     #                     add_generation_prompt=True,
-    #     #             )
-    #     #             for problem in eval_dataset
-    #     # ]
-    #     generated_responses = model.generate(input_texts, max_new_tokens=32678,
-    #         temperature=0,
-    #         eos_token_id=self.tokenizer.eos_token_id)
-    #     generated_responses = [generated_response.outputs[0].text for generated_response in generated_responses]
-    #     score=sum([
-    #         process_reject_sample(problem,'solution',response,logger) for problem,response in zip(eval_dataset,generated_responses)
-    #     ])/len(eval_dataset)*100
-    #     return {f"{metric_key_prefix}_math_score":score}
     
     @override
     def evaluate(self, eval_dataset: Optional[Dataset] = None, ignore_keys: Optional[List[str]] = None, metric_key_prefix: str = "eval", **gen_kwargs) -> Dict[str, float]:
@@ -184,7 +222,7 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
             world_size = 1
 
         # Use DistributedSampler for multi-card setup, or no sampler for single-card
-        batch_size = 4
+        batch_size = 16
         sampler = DistributedSampler(eval_dataset, num_replicas=world_size, rank=rank) if dist.is_initialized() else None
         dataloader = DataLoader(
             eval_dataset, 
@@ -202,6 +240,9 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
         model = self._wrap_model(self.model, training=False, dataloader=dataloader)
         model.eval()
         model.generation_config.pad_token_id = processing_classs.pad_token_id
+
+        #设置stop words
+        stop_words = ["</s>", "<|im_end|>", "<|endoftext|>","<｜Assistant｜>"]
         
         logger.info_rank0("Model Wrap Success.")
 
@@ -209,12 +250,12 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
 
         for i, batch in enumerate(tqdm(dataloader, desc="Processing Batches", ncols=100, unit="batch")):
             device = torch.device(f"cuda:{rank}" if dist.is_initialized() else "cuda:0")
-            logger.info(f"Processing Batch {i} in {device}")
+            # logger.info(f"Processing Batch {i} in {device}")
             with torch.no_grad():  # 禁用梯度计算以降低GPU占用
                 with torch.amp.autocast('cuda', dtype=torch.bfloat16):
                     problems = batch['problem']
                     solutions = batch['solution']
-                    input_texts = [
+                    prompts = [
                         processing_classs.apply_chat_template(
                             [
                                 {"role": "system", "content": "Please reason step by step, and put your final answer within \\boxed{{}}"},
@@ -225,45 +266,63 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
                         )
                         for problem in problems
                     ]
-                    model_inputs = processing_classs(input_texts, return_tensors="pt", padding=True).to(device)
+                    decoded_responses = generate_completions(model,processing_classs,prompts,batch_size=batch_size,stop_id_sequences=stop_words,\
+                                                             disable_tqdm=True,max_new_tokens=4096)
 
-                    generated_ids = model.generate(
-                        **model_inputs,
-                        max_new_tokens=2048
-                    )
-                    # 去除输入部分，只保留模型生成的 token id，并转换为 Python 列表
-                    generated_ids = [
-                        output_ids[len(input_ids):].tolist() 
-                        for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
-                    ]
-                    decoded_responses = processing_classs.batch_decode(generated_ids, skip_special_tokens=True)
 
                     for problem,solution,response in zip(problems,solutions,decoded_responses):
-                        logger.info(problem)
-                        logger.info(response)
                         answered_problems.append({
                             "problem":problem,
                             "solution":solution,
                             "model_answer":response
                         })
-        if rank == 0:  
+        # 收集所有进程的结果到 rank 0
+        if dist.is_initialized():
+            # 使用 gather_object 收集各进程数据
+            gathered_results = [None for _ in range(world_size)]
+            dist.gather_object(answered_problems, gathered_results if rank == 0 else None, dst=0)
+        else:
+            # 单卡情况直接包装结果
+            gathered_results = [answered_problems]
+
+        # 只在 rank 0 处理最终结果
+        if rank == 0:
+            # 合并所有进程的结果
+            all_answered_problems = []
+            for proc_results in gathered_results:
+                if proc_results is not None:
+                    all_answered_problems.extend(proc_results)
+
+            
+            # 计算最终指标
             score = sum([
                 process_reject_sample(problem, 'solution', problem['model_answer'], logger, timeout=0)
-                for problem in answered_problems
-            ]) / len(answered_problems) * 100
+                for problem in all_answered_problems
+            ]) / len(all_answered_problems) * 100
             metrics = {
                 "steps": self.state.global_step,
                 f"{metric_key_prefix}_math_score": score
             }
+            logger.info(f"Total collected problems: {len(all_answered_problems)}")
+            logger.info(f"Math Score : {score}")
 
             # save result
+            
             os.makedirs(self.args.output_dir, exist_ok=True)
+            raw_result_file=os.path.join(self.args.output_dir, "eval_problems.json")
+            with open(raw_result_file, 'w') as f:
+                json.dump(all_answered_problems, f, indent=4)
+
+
             metrics_file = os.path.join(self.args.output_dir, "eval_metrics.json")
             if os.path.exists(metrics_file):
                 with open(metrics_file, 'r') as f:
                     all_metrics = json.load(f)
             else:
                 all_metrics = []  # Initialize an empty list if the file doesn't exist
+
+            
+
 
             # Append the new metrics to the list
             all_metrics.append(metrics)

@@ -810,7 +810,7 @@
     }
 },
 "first_iter_problems": {
-    "file_name": "/data2/xucaijun/New/Math-Generator/outputs/first_iter_test.json",
+    "file_name": "/data2/xucaijun/Math-Generator/outputs/first_iter_test.json",
     "file_sha1":"316483043d35f4eead34bb1ec7adbbaf2df00006",
     "formatting": "sharegpt",
     "columns": {
@@ -825,7 +825,7 @@
     }
 },
 "raw_math_model_answer": {
-    "file_name": "/data2/xucaijun/New/Math-Generator/outputs/model_answer_test.json",
+    "file_name": "/data2/xucaijun/Math-Generator/outputs/model_answer_test.json",
     "file_sha1":"c9d5b38f89131d3172b1cbae6b768d3715898f5b",
     "formatting": "sharegpt",
     "columns": {
@@ -840,7 +840,7 @@
     }
 },
 "first_and_second": {
-    "file_name": "/data2/xucaijun/New/Math-Generator/outputs/first_and_second_test.json",
+    "file_name": "/data2/xucaijun/Math-Generator/outputs/first_and_second_test.json",
     "file_sha1":"9ef25cc2b5897c00008ac4fc12a7f07b9de38422",
     "formatting": "sharegpt",
     "columns": {
@@ -855,7 +855,7 @@
     }
 },
 "second_iter_problems": {
-    "file_name": "/data2/xucaijun/New/Math-Generator/outputs/second_iter_test.json",
+    "file_name": "/data2/xucaijun/Math-Generator/outputs/second_iter_test.json",
     "file_sha1":"15778f97f33b800a62d816ed0d334791a58d337e",
     "formatting": "sharegpt",
     "columns": {
@@ -870,7 +870,7 @@
     }
 },
 "complex_train_data": {
-    "file_name": "/data2/xucaijun/New/Math-Generator/outputs/model_complex_train.json",
+    "file_name": "/data2/xucaijun/Math-Generator/outputs/model_complex_train.json",
     "file_sha1":"03876ef28fdf3e6ae613b24fe64296eefe6018fe",
     "formatting": "sharegpt",
     "columns": {
@@ -884,7 +884,7 @@
     }
 },
 "newthink_first_iter": {
-    "file_name": "/data2/xucaijun/New/Math-Generator/outputs/newthink_complex_problem.json",
+    "file_name": "/data2/xucaijun/Math-Generator/outputs/newthink_complex_problem.json",
     "file_sha1":"fc16a6aff88892f9675eedb32b6b06708fe256ef",
     "formatting": "sharegpt",
     "columns": {
@@ -899,7 +899,7 @@
     }
 },
 "raw_problems":{
-  "file_name": "/data2/xucaijun/New/Math-Generator/outputs/raw_complex_train.json",
+  "file_name": "/data2/xucaijun/Math-Generator/outputs/raw_complex_train.json",
   "file_sha1":"707cdd15e25c2c997b39cfa1de2be0091d325a2d",
   "formatting": "sharegpt",
   "columns": {
@@ -914,7 +914,7 @@
   }
 },
 "newthink_12":{
-  "file_name": "/data2/xucaijun/New/Math-Generator/outputs/newthink_12_complex_train.json",
+  "file_name": "/data2/xucaijun/Math-Generator/outputs/newthink_12_complex_train.json",
   "file_sha1":"f243e37d89dae50681f76395daf93f012c87e2c1",
   "formatting": "sharegpt",
   "columns": {
@@ -929,7 +929,7 @@
   }
 },
 "raw_12":{
-  "file_name": "/data2/xucaijun/New/Math-Generator/outputs/tmp_raw_12.json",
+  "file_name": "/data2/xucaijun/Math-Generator/outputs/tmp_raw_12.json",
   "file_sha1":"01e5bbb9d99691ace107c89b4a1ec23bee12cab5",
   "formatting": "sharegpt",
   "columns": {
@@ -944,7 +944,7 @@
   }
 },
 "newthink_2":{
-  "file_name": "/data2/xucaijun/New/Math-Generator/outputs/newsecond_iter_questions.json",
+  "file_name": "/data2/xucaijun/Math-Generator/outputs/newsecond_iter_questions.json",
   "file_sha1":"9cefda3ac9e59f037e54bdbb248d8acc2233d0b5",
   "formatting": "sharegpt",
   "columns": {
@@ -958,8 +958,190 @@
     "system_tag": "system"
   }
 },
+"7b_correct_test_0":{
+  "file_name": "/data2/xucaijun/Math-Generator/outputs/level-test/7b_correct_num_0.json",
+  "formatting": "sharegpt",
+  "columns": {
+    "messages": "messages"
+  },
+  "tags": {
+    "role_tag": "role",
+    "content_tag": "content",
+    "user_tag": "user",
+    "assistant_tag": "assistant",
+    "system_tag": "system"
+  }
+},
+"7b_correct_test_1":{
+  "file_name": "/data2/xucaijun/Math-Generator/outputs/level-test/7b_correct_num_1.json",
+  "formatting": "sharegpt",
+  "columns": {
+    "messages": "messages"
+  },
+  "tags": {
+    "role_tag": "role",
+    "content_tag": "content",
+    "user_tag": "user",
+    "assistant_tag": "assistant",
+    "system_tag": "system"
+  }
+},
+"7b_correct_test_2":{
+  "file_name": "/data2/xucaijun/Math-Generator/outputs/level-test/7b_correct_num_2.json",
+  "formatting": "sharegpt",
+  "columns": {
+    "messages": "messages"
+  },
+  "tags": {
+    "role_tag": "role",
+    "content_tag": "content",
+    "user_tag": "user",
+    "assistant_tag": "assistant",
+    "system_tag": "system"
+  }
+},
+"7b_correct_test_3":{
+  "file_name": "/data2/xucaijun/Math-Generator/outputs/level-test/7b_correct_num_3.json",
+  "formatting": "sharegpt",
+  "columns": {
+    "messages": "messages"
+  },
+  "tags": {
+    "role_tag": "role",
+    "content_tag": "content",
+    "user_tag": "user",
+    "assistant_tag": "assistant",
+    "system_tag": "system"
+  }
+},
+"7b_correct_test_4":{
+  "file_name": "/data2/xucaijun/Math-Generator/outputs/level-test/7b_correct_num_4.json",
+  "formatting": "sharegpt",
+  "columns": {
+    "messages": "messages"
+  },
+  "tags": {
+    "role_tag": "role",
+    "content_tag": "content",
+    "user_tag": "user",
+    "assistant_tag": "assistant",
+    "system_tag": "system"
+  }
+},
+"7b_correct_test_5":{
+  "file_name": "/data2/xucaijun/Math-Generator/outputs/level-test/7b_correct_num_5.json",
+  "formatting": "sharegpt",
+  "columns": {
+    "messages": "messages"
+  },
+  "tags": {
+    "role_tag": "role",
+    "content_tag": "content",
+    "user_tag": "user",
+    "assistant_tag": "assistant",
+    "system_tag": "system"
+  }
+},
+"7b_correct_test_6":{
+  "file_name": "/data2/xucaijun/Math-Generator/outputs/level-test/7b_correct_num_6.json",
+  "formatting": "sharegpt",
+  "columns": {
+    "messages": "messages"
+  },
+  "tags": {
+    "role_tag": "role",
+    "content_tag": "content",
+    "user_tag": "user",
+    "assistant_tag": "assistant",
+    "system_tag": "system"
+  }
+},
+"7b_correct_test_7":{
+  "file_name": "/data2/xucaijun/Math-Generator/outputs/level-test/7b_correct_num_7.json",
+  "formatting": "sharegpt",
+  "columns": {
+    "messages": "messages"
+  },
+  "tags": {
+    "role_tag": "role",
+    "content_tag": "content",
+    "user_tag": "user",
+    "assistant_tag": "assistant",
+    "system_tag": "system"
+  }
+},
+"7b_correct_test_8":{
+  "file_name": "/data2/xucaijun/Math-Generator/outputs/level-test/7b_correct_num_8.json",
+  "formatting": "sharegpt",
+  "columns": {
+    "messages": "messages"
+  },
+  "tags": {
+    "role_tag": "role",
+    "content_tag": "content",
+    "user_tag": "user",
+    "assistant_tag": "assistant",
+    "system_tag": "system"
+  }
+},
+"7b_correct_test_9":{
+  "file_name": "/data2/xucaijun/Math-Generator/outputs/level-test/7b_correct_num_9.json",
+  "formatting": "sharegpt",
+  "columns": {
+    "messages": "messages"
+  },
+  "tags": {
+    "role_tag": "role",
+    "content_tag": "content",
+    "user_tag": "user",
+    "assistant_tag": "assistant",
+    "system_tag": "system"
+  }
+},
+"7b_correct_test_10":{
+  "file_name": "/data2/xucaijun/Math-Generator/outputs/level-test/7b_correct_num_10.json",
+  "formatting": "sharegpt",
+  "columns": {
+    "messages": "messages"
+  },
+  "tags": {
+    "role_tag": "role",
+    "content_tag": "content",
+    "user_tag": "user",
+    "assistant_tag": "assistant",
+    "system_tag": "system"
+  }
+},
+"7b_correct_test_11":{
+  "file_name": "/data2/xucaijun/Math-Generator/outputs/level-test/7b_correct_num_11.json",
+  "formatting": "sharegpt",
+  "columns": {
+    "messages": "messages"
+  },
+  "tags": {
+    "role_tag": "role",
+    "content_tag": "content",
+    "user_tag": "user",
+    "assistant_tag": "assistant",
+    "system_tag": "system"
+  }
+},
+"7b_correct_test_12":{
+  "file_name": "/data2/xucaijun/Math-Generator/outputs/level-test/7b_correct_num_12.json",
+  "formatting": "sharegpt",
+  "columns": {
+    "messages": "messages"
+  },
+  "tags": {
+    "role_tag": "role",
+    "content_tag": "content",
+    "user_tag": "user",
+    "assistant_tag": "assistant",
+    "system_tag": "system"
+  }
+},
 "correct_test_0":{
-  "file_name": "/data2/xucaijun/Math-Generator/outputs/level-test/raw_correct_num_0.json",
+  "file_name": "/data2/xucaijun/Math-Generator/outputs/level-test/correct_num_0.json",
   "formatting": "sharegpt",
   "columns": {
     "messages": "messages"
@@ -973,7 +1155,7 @@
   }
 },
 "correct_test_1":{
-  "file_name": "/data2/xucaijun/Math-Generator/outputs/level-test/raw_correct_num_1.json",
+  "file_name": "/data2/xucaijun/Math-Generator/outputs/level-test/correct_num_1.json",
   "formatting": "sharegpt",
   "columns": {
     "messages": "messages"
@@ -987,7 +1169,7 @@
   }
 },
 "correct_test_2":{
-  "file_name": "/data2/xucaijun/Math-Generator/outputs/level-test/raw_correct_num_2.json",
+  "file_name": "/data2/xucaijun/Math-Generator/outputs/level-test/correct_num_2.json",
   "formatting": "sharegpt",
   "columns": {
     "messages": "messages"
@@ -1001,7 +1183,7 @@
   }
 },
 "correct_test_3":{
-  "file_name": "/data2/xucaijun/Math-Generator/outputs/level-test/raw_correct_num_3.json",
+  "file_name": "/data2/xucaijun/Math-Generator/outputs/level-test/correct_num_3.json",
   "formatting": "sharegpt",
   "columns": {
     "messages": "messages"
@@ -1015,7 +1197,7 @@
   }
 },
 "correct_test_4":{
-  "file_name": "/data2/xucaijun/Math-Generator/outputs/level-test/raw_correct_num_4.json",
+  "file_name": "/data2/xucaijun/Math-Generator/outputs/level-test/correct_num_4.json",
   "formatting": "sharegpt",
   "columns": {
     "messages": "messages"
@@ -1029,7 +1211,7 @@
   }
 },
 "correct_test_5":{
-  "file_name": "/data2/xucaijun/Math-Generator/outputs/level-test/raw_correct_num_5.json",
+  "file_name": "/data2/xucaijun/Math-Generator/outputs/level-test/correct_num_5.json",
   "formatting": "sharegpt",
   "columns": {
     "messages": "messages"
@@ -1043,7 +1225,7 @@
   }
 },
 "correct_test_6":{
-  "file_name": "/data2/xucaijun/Math-Generator/outputs/level-test/raw_correct_num_6.json",
+  "file_name": "/data2/xucaijun/Math-Generator/outputs/level-test/correct_num_6.json",
   "formatting": "sharegpt",
   "columns": {
     "messages": "messages"
@@ -1057,7 +1239,7 @@
   }
 },
 "correct_test_7":{
-  "file_name": "/data2/xucaijun/Math-Generator/outputs/level-test/raw_correct_num_7.json",
+  "file_name": "/data2/xucaijun/Math-Generator/outputs/level-test/correct_num_7.json",
   "formatting": "sharegpt",
   "columns": {
     "messages": "messages"
@@ -1071,7 +1253,7 @@
   }
 },
 "correct_test_8":{
-  "file_name": "/data2/xucaijun/Math-Generator/outputs/level-test/raw_correct_num_8.json",
+  "file_name": "/data2/xucaijun/Math-Generator/outputs/level-test/correct_num_8.json",
   "formatting": "sharegpt",
   "columns": {
     "messages": "messages"
@@ -1085,7 +1267,7 @@
   }
 },
 "correct_test_9":{
-  "file_name": "/data2/xucaijun/Math-Generator/outputs/level-test/raw_correct_num_9.json",
+  "file_name": "/data2/xucaijun/Math-Generator/outputs/level-test/correct_num_9.json",
   "formatting": "sharegpt",
   "columns": {
     "messages": "messages"
@@ -1099,7 +1281,7 @@
   }
 },
 "correct_test_10":{
-  "file_name": "/data2/xucaijun/Math-Generator/outputs/level-test/raw_correct_num_10.json",
+  "file_name": "/data2/xucaijun/Math-Generator/outputs/level-test/correct_num_10.json",
   "formatting": "sharegpt",
   "columns": {
     "messages": "messages"
@@ -1113,7 +1295,35 @@
   }
 },
 "correct_test_11":{
-  "file_name": "/data2/xucaijun/Math-Generator/outputs/level-test/raw_correct_num_11.json",
+  "file_name": "/data2/xucaijun/Math-Generator/outputs/level-test/correct_num_11.json",
+  "formatting": "sharegpt",
+  "columns": {
+    "messages": "messages"
+  },
+  "tags": {
+    "role_tag": "role",
+    "content_tag": "content",
+    "user_tag": "user",
+    "assistant_tag": "assistant",
+    "system_tag": "system"
+  }
+},
+"correct_test_12":{
+  "file_name": "/data2/xucaijun/Math-Generator/outputs/level-test/correct_num_12.json",
+  "formatting": "sharegpt",
+  "columns": {
+    "messages": "messages"
+  },
+  "tags": {
+    "role_tag": "role",
+    "content_tag": "content",
+    "user_tag": "user",
+    "assistant_tag": "assistant",
+    "system_tag": "system"
+  }
+},
+"correct_test_13":{
+  "file_name": "/data2/xucaijun/Math-Generator/outputs/level-test/correct_num_13.json",
   "formatting": "sharegpt",
   "columns": {
     "messages": "messages"
