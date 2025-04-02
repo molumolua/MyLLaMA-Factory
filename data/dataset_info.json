@@ -692,7 +692,6 @@
 },
 "MATH_data": {
     "file_name": "/data2/xucaijun/Math-Generator/outputs/MATH.json",
-    "file_sha1":"97d170e1550eee4afc0af065b78cda302a97674c",
     "formatting": "sharegpt",
     "columns": {
       "messages": "messages"
@@ -1324,6 +1323,20 @@
 },
 "correct_test_13":{
   "file_name": "/data2/xucaijun/Math-Generator/outputs/level-test/correct_num_13.json",
+  "formatting": "sharegpt",
+  "columns": {
+    "messages": "messages"
+  },
+  "tags": {
+    "role_tag": "role",
+    "content_tag": "content",
+    "user_tag": "user",
+    "assistant_tag": "assistant",
+    "system_tag": "system"
+  }
+},
+"bishe_test":{
+  "file_name": "/data2/xucaijun/Code-Math-Generator/data/enhance/MATH_train.json",
   "formatting": "sharegpt",
   "columns": {
     "messages": "messages"
